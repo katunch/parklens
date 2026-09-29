@@ -1,0 +1,399 @@
+/*
+ * ParkLens design tokens
+ * ----------------------
+ * Source of truth for colour, type, spacing, radii, elevation, motion and layout.
+ * Spec: docs/UX.md. Light theme only for the MVP (color-scheme: light).
+ *
+ * Two layers:
+ *   1. Primitives  (--c-*)      raw palette. Do NOT use in components.
+ *   2. Semantic    (--color-*)  what components use. Change a theme here only.
+ *
+ * Fonts are self-hosted via Fontsource (no external CDN). In src/main.tsx:
+ *   import '@fontsource/barlow/400.css';
+ *   import '@fontsource/barlow/500.css';
+ *   import '@fontsource/barlow/600.css';
+ *   import '@fontsource/barlow-semi-condensed/500.css';
+ *   import '@fontsource/barlow-semi-condensed/600.css';
+ *   import '@fontsource/barlow-semi-condensed/700.css';
+ *   import './styles/tokens.css';
+ *
+ * Contrast notes (WCAG 2.2 AA, verified):
+ *   text on surface/page          16.4 / 14.9 : 1
+ *   text-muted on surface/page     7.2 /  6.5 : 1
+ *   text-subtle on surface/page    5.0 /  4.6 : 1   (never on --color-surface-sunken)
+ *   border-input vs surface/page   3.7 /  3.4 : 1   (non-text 3:1)
+ *   white on primary / danger      8.1 /  6.2 : 1
+ *   *-text on *-bg (status)        >= 6.2 : 1
+ *   nav text on nav bg             9.8 : 1, marking yellow on nav bg 9.1 : 1
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ======================================================================
+   * 1. PRIMITIVES
+   * ==================================================================== */
+
+  /* Asphalt → concrete neutrals (cool, slightly blue-grey) */
+  --c-gray-0: #ffffff;
+  --c-gray-50: #f2f4f5;   /* concrete: page background */
+  --c-gray-100: #e8ebed;  /* sunken fills, table header */
+  --c-gray-150: #e1e5e8;  /* hairlines inside surfaces */
+  --c-gray-200: #d3d8dc;  /* panel borders, dividers */
+  --c-gray-300: #a9b1b8;  /* disabled text, decorative icons */
+  --c-gray-400: #7d868e;  /* input borders (3:1) */
+  --c-gray-500: #66707a;  /* subtle text, placeholders */
+  --c-gray-600: #4f5961;  /* muted text */
+  --c-gray-700: #3a434a;  /* strong secondary text, neutral badge text */
+  --c-gray-750: #2e363c;  /* nav active background */
+  --c-gray-800: #2a3137;  /* nav hover background */
+  --c-gray-850: #20262b;  /* asphalt: nav / top bar background */
+  --c-gray-900: #1b2024;  /* body text */
+  --c-gray-950: #14181b;  /* plate ink */
+
+  /* Signal blue (Swiss parking-sign blue) */
+  --c-blue-50: #e8eff8;
+  --c-blue-100: #d3e1f2;
+  --c-blue-200: #a9c3e6;
+  --c-blue-500: #2560ac;
+  --c-blue-600: #1d4f91;
+  --c-blue-700: #163e73;
+  --c-blue-800: #102e56;
+
+  /* Green: valid permit / allowed */
+  --c-green-50: #e5f3e9;
+  --c-green-200: #9fd1ae;
+  --c-green-600: #23773f;
+  --c-green-700: #1c6436;
+
+  /* Amber: waiting / needs a decision */
+  --c-amber-50: #fdf1dc;
+  --c-amber-200: #f6d38f;
+  --c-amber-600: #a85b00;
+  --c-amber-700: #7d4400;
+  --c-amber-800: #5c3300;
+
+  /* Red: car without permit / destructive */
+  --c-red-50: #fcebea;
+  --c-red-100: #ffe3e1;
+  --c-red-200: #f2b5b1;
+  --c-red-600: #bf1a2f;
+  --c-red-700: #a3161f;
+  --c-red-800: #7f1119;
+
+  /* Road-marking yellow: nav lane marker, focus on dark, "fresh paint" highlight */
+  --c-marking: #f2c230;
+  --c-marking-50: #fff3c4;
+
+  /* ======================================================================
+   * 2. SEMANTIC COLOURS
+   * ==================================================================== */
+
+  /* Surfaces */
+  --color-bg: var(--c-gray-50);
+  --color-surface: var(--c-gray-0);
+  --color-surface-sunken: var(--c-gray-100);
+  --color-surface-hover: var(--c-gray-50);
+  --color-surface-selected: var(--c-blue-50);
+  --color-overlay: rgb(20 24 27 / 0.55);
+
+  /* Text */
+  --color-text: var(--c-gray-900);
+  --color-text-strong: var(--c-gray-950);
+  --color-text-secondary: var(--c-gray-700);
+  --color-text-muted: var(--c-gray-600);
+  --color-text-subtle: var(--c-gray-500);   /* only on surface / bg */
+  --color-text-disabled: var(--c-gray-300);
+  --color-text-inverse: var(--c-gray-0);
+  --color-placeholder: var(--c-gray-500);
+
+  /* Lines */
+  --color-border: var(--c-gray-200);
+  --color-border-subtle: var(--c-gray-150);
+  --color-border-input: var(--c-gray-400);
+  --color-border-input-hover: var(--c-gray-600);
+
+  /* Brand / interactive */
+  --color-primary: var(--c-blue-600);
+  --color-primary-hover: var(--c-blue-700);
+  --color-primary-active: var(--c-blue-800);
+  --color-primary-subtle: var(--c-blue-50);
+  --color-primary-border: var(--c-blue-200);
+  --color-on-primary: var(--c-gray-0);
+  --color-link: var(--c-blue-600);
+  --color-link-hover: var(--c-blue-700);
+
+  /* Focus */
+  --color-focus: var(--c-blue-600);
+  --color-focus-on-dark: var(--c-marking);
+  --color-focus-on-danger: var(--c-gray-0);
+
+  /* Status: success (valid permit, authorized, approved) */
+  --color-success-bg: var(--c-green-50);
+  --color-success-border: var(--c-green-200);
+  --color-success-text: var(--c-green-700);
+  --color-success-solid: var(--c-green-600);
+  --color-on-success: var(--c-gray-0);
+
+  /* Status: warning (pending request, notification failed, date passed) */
+  --color-warning-bg: var(--c-amber-50);
+  --color-warning-border: var(--c-amber-200);
+  --color-warning-text: var(--c-amber-700);
+  --color-warning-solid: var(--c-amber-600);
+  --color-warning-pill-bg: var(--c-amber-200);
+  --color-warning-pill-text: var(--c-amber-800);
+
+  /* Status: danger (open alarm, unauthorized, destructive, errors) */
+  --color-danger-bg: var(--c-red-50);
+  --color-danger-border: var(--c-red-200);
+  --color-danger-text: var(--c-red-700);
+  --color-danger-solid: var(--c-red-600);
+  --color-danger-solid-hover: var(--c-red-700);
+  --color-danger-solid-active: var(--c-red-800);
+  --color-on-danger: var(--c-gray-0);
+  --color-on-danger-muted: var(--c-red-100);
+
+  /* Status: info (neutral hints, new request toast) */
+  --color-info-bg: var(--c-blue-50);
+  --color-info-border: var(--c-blue-200);
+  --color-info-text: var(--c-blue-700);
+  --color-info-solid: var(--c-blue-600);
+
+  /* Status: neutral (rejected, revoked, resolved, check-out) */
+  --color-neutral-bg: var(--c-gray-100);
+  --color-neutral-border: var(--c-gray-200);
+  --color-neutral-text: var(--c-gray-700);
+  --color-neutral-solid: var(--c-gray-600);
+
+  /* Live row highlight ("fresh paint"), fades to transparent */
+  --color-highlight: var(--c-marking-50);
+
+  /* Navigation (asphalt shell) */
+  --color-nav-bg: var(--c-gray-850);
+  --color-nav-border: #343c43;
+  --color-nav-text: #c9d0d5;
+  --color-nav-text-muted: #98a2aa;
+  --color-nav-text-active: var(--c-gray-0);
+  --color-nav-hover-bg: var(--c-gray-800);
+  --color-nav-active-bg: var(--c-gray-750);
+  --color-nav-marker: var(--c-marking);
+  --color-nav-control-bg: var(--c-gray-800);          /* LanguageSwitcher container on asphalt */
+  --color-nav-control-selected-bg: var(--c-gray-700); /* selected segment on asphalt */
+
+  /* Switch (off state uses a 3:1 border as the boundary, not the fill) */
+  --color-switch-track-off: var(--c-gray-0);
+  --color-switch-border-off: var(--c-gray-400);
+  --color-switch-thumb-off: var(--c-gray-500);
+  --color-switch-track-on: var(--c-blue-600);
+  --color-switch-thumb-on: var(--c-gray-0);
+  /* Switch on asphalt (sidebar only; the mobile More sheet is light) */
+  --color-switch-track-off-dark: var(--c-gray-800);
+  --color-switch-border-off-dark: #98a2aa;
+  --color-switch-thumb-off-dark: #98a2aa;
+  --color-switch-track-on-dark: var(--c-marking);
+  --color-switch-thumb-on-dark: var(--c-gray-850);
+
+  /* Mobile bottom tab bar (light) */
+  --color-tabbar-bg: var(--c-gray-0);
+  --color-tabbar-text: var(--c-gray-600);
+  --color-tabbar-text-active: var(--c-blue-600);
+
+  /* Logo mark: parking-sign square */
+  --color-logo-bg: var(--c-blue-600);
+  --color-logo-fg: var(--c-gray-0);
+
+  /* ======================================================================
+   * 3. TYPOGRAPHY
+   * ==================================================================== */
+
+  --font-sans: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Barlow Semi Condensed", "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-plate: "Barlow Semi Condensed", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Scale (px): 12 14 15 16 18 21 24 28 36 48 */
+  --text-xs: 0.75rem;       --leading-xs: 1rem;
+  --text-sm: 0.875rem;      --leading-sm: 1.25rem;
+  --text-ui: 0.9375rem;     --leading-ui: 1.375rem;   /* admin body, table cells */
+  --text-base: 1rem;        --leading-base: 1.5rem;   /* public body, form inputs */
+  --text-md: 1.125rem;      --leading-md: 1.625rem;   /* panel titles, lead text */
+  --text-lg: 1.3125rem;     --leading-lg: 1.75rem;    /* dialog titles */
+  --text-xl: 1.5rem;        --leading-xl: 1.875rem;   /* admin h1 (mobile) */
+  --text-2xl: 1.75rem;      --leading-2xl: 2.125rem;  /* admin h1 (desktop), public h1 (mobile) */
+  --text-3xl: 2.25rem;      --leading-3xl: 2.5rem;    /* public h1 (desktop), KPI values */
+  --text-4xl: 3rem;         --leading-4xl: 3.25rem;   /* success reference code */
+
+  --tracking-tight: -0.01em;   /* display sizes >= 28px */
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;     /* small count badges */
+
+  --measure: 68ch;             /* max line length for prose */
+
+  /* ======================================================================
+   * 4. SPACING (4px grid)
+   * ==================================================================== */
+
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 0.125rem;  /*  2 */
+  --space-1: 0.25rem;     /*  4 */
+  --space-1-5: 0.375rem;  /*  6 */
+  --space-2: 0.5rem;      /*  8 */
+  --space-3: 0.75rem;     /* 12 */
+  --space-4: 1rem;        /* 16 */
+  --space-5: 1.25rem;     /* 20 */
+  --space-6: 1.5rem;      /* 24 */
+  --space-8: 2rem;        /* 32 */
+  --space-10: 2.5rem;     /* 40 */
+  --space-12: 3rem;       /* 48 */
+  --space-16: 4rem;       /* 64 */
+  --space-20: 5rem;       /* 80 */
+
+  /* ======================================================================
+   * 5. RADII
+   * ==================================================================== */
+
+  --radius-xs: 3px;     /* small plate, count badge corners in dense rows */
+  --radius-sm: 4px;     /* status badges, chips, checkboxes */
+  --radius-md: 6px;     /* buttons, inputs, segmented control */
+  --radius-lg: 10px;    /* panels, dialogs, toasts, alarm banner */
+  --radius-xl: 14px;    /* mobile bottom sheet (top corners) */
+  --radius-pill: 999px; /* count badges, switch, live dot */
+
+  /* ======================================================================
+   * 6. ELEVATION (tinted with asphalt, not neutral black)
+   * Panels use borders, not shadows. Shadows are for floating layers only.
+   * ==================================================================== */
+
+  --shadow-xs: 0 1px 1px rgb(20 24 27 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(20 24 27 / 0.08), 0 1px 1px rgb(20 24 27 / 0.04);
+  --shadow-md: 0 6px 16px -4px rgb(20 24 27 / 0.16), 0 2px 4px rgb(20 24 27 / 0.06);
+  --shadow-lg: 0 20px 44px -10px rgb(20 24 27 / 0.32), 0 4px 10px rgb(20 24 27 / 0.08);
+  --shadow-banner: 0 8px 20px -8px rgb(127 17 25 / 0.5);
+  --shadow-tabbar: 0 -1px 0 var(--color-border), 0 -4px 12px rgb(20 24 27 / 0.04);
+
+  /* ======================================================================
+   * 7. Z-INDEX
+   * ==================================================================== */
+
+  --z-base: 0;
+  --z-sticky: 10;      /* sticky table header, page header */
+  --z-nav: 100;        /* sidebar, top bar, bottom tab bar */
+  --z-banner: 150;     /* live alarm banner (sticky) */
+  --z-dropdown: 200;
+  --z-overlay: 300;    /* dialog backdrop (if not using ::backdrop) */
+  --z-dialog: 310;
+  --z-toast: 400;      /* above dialogs so errors from dialog actions stay visible */
+  --z-skiplink: 500;
+
+  /* ======================================================================
+   * 8. MOTION
+   * ==================================================================== */
+
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;      /* hover, press, colour changes */
+  --dur-base: 200ms;      /* dialog, toast, banner enter */
+  --dur-slow: 320ms;      /* request card collapse after decision */
+  --dur-highlight: 1800ms;/* fresh-paint fade on live rows (colour only, kept under reduced motion) */
+  --dur-pulse: 900ms;     /* single siren-icon pulse on new alarm */
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  --motion-distance: 8px; /* slide offset for banner / toast / sheet enter */
+
+  /* ======================================================================
+   * 9. LAYOUT & CONTROLS
+   * Breakpoints (use literally in @media, CSS vars do not work there):
+   *   --bp-cards   720px   tables → stacked cards below
+   *   --bp-shell   960px   sidebar at >= 960, top bar + bottom tabs below
+   * ==================================================================== */
+
+  --sidebar-w: 248px;
+  --topbar-h: 56px;
+  --tabbar-h: 64px;
+  --content-max: 1280px;   /* admin content */
+  --content-narrow: 760px; /* settings, simulator form column */
+  --public-max: 560px;     /* public pages column */
+  --dialog-w-sm: 420px;    /* confirmations */
+  --dialog-w-md: 540px;    /* forms (create permit, resolve alarm) */
+  --page-pad-x: var(--space-4);
+  --page-pad-y: var(--space-6);
+
+  --control-h-sm: 2rem;    /* 32 */
+  --control-h-md: 2.5rem;  /* 40 */
+  --control-h-lg: 3rem;    /* 48 */
+  --control-pad-x: var(--space-3);
+  --border-w: 1px;
+  --focus-w: 2px;
+  --focus-offset: 2px;
+
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 32px;         /* empty states */
+
+  /* ======================================================================
+   * 10. PLATE CHIP (signature element; see UX.md → PlateChip)
+   * Swiss-style plate: white field, black characters, outer edge + inset rim.
+   * Always white, whatever surface it sits on (also on the red alarm banner).
+   * ==================================================================== */
+
+  --plate-bg: var(--c-gray-0);
+  --plate-ink: var(--c-gray-950);
+  --plate-edge: var(--c-gray-950);   /* outer 1px border */
+  --plate-rim: var(--c-gray-950);    /* inset rim line */
+  --plate-rim-gap: 2px;              /* white gap between edge and rim (md+) */
+  --plate-font: var(--font-plate);
+  --plate-weight: var(--weight-semibold);
+  --plate-tracking: 0.06em;
+  --plate-shadow: 0 1px 1px rgb(20 24 27 / 0.12);
+
+  /* sizes: font-size / height / horizontal padding / radius */
+  --plate-sm-font: 0.8125rem;  --plate-sm-h: 22px;  --plate-sm-pad: 6px;   --plate-sm-radius: var(--radius-xs);
+  --plate-md-font: 1rem;       --plate-md-h: 28px;  --plate-md-pad: 9px;   --plate-md-radius: 5px;
+  --plate-lg-font: 1.375rem;   --plate-lg-h: 40px;  --plate-lg-pad: 13px;  --plate-lg-radius: 6px;
+  --plate-xl-font: 2.125rem;   --plate-xl-h: 60px;  --plate-xl-pad: 20px;  --plate-xl-radius: 8px;
+
+  /* PlateInput (form field styled as a plate) */
+  --plate-input-font: 1.75rem;
+  --plate-input-h: 4rem;
+  --plate-input-pad: 18px;
+  --plate-input-radius: 8px;
+  --plate-input-rim-focus: var(--c-blue-600);
+  --plate-input-rim-error: var(--c-red-600);
+}
+
+/* Wider screens: more generous page padding */
+@media (min-width: 960px) {
+  :root {
+    --page-pad-x: var(--space-8);
+    --page-pad-y: var(--space-8);
+  }
+}
+
+/* Touch devices: 44px minimum targets for default controls */
+@media (pointer: coarse) {
+  :root {
+    --control-h-sm: 2.25rem;  /* 36 */
+    --control-h-md: 2.75rem;  /* 44 */
+  }
+}
+
+/* Reduced motion: remove movement, keep colour fades */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 1ms;
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-pulse: 1ms;
+    --motion-distance: 0px;
+  }
+}

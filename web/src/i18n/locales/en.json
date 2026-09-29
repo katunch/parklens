@@ -1,0 +1,718 @@
+{
+  "common": {
+    "appName": "ParkLens",
+    "actions": {
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "cancel": "Cancel",
+      "close": "Close",
+      "back": "Back",
+      "tryAgain": "Try again",
+      "copy": "Copy",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "refresh": "Refresh",
+      "clearFilters": "Clear filters",
+      "previous": "Previous",
+      "next": "Next",
+      "edit": "Edit",
+      "remove": "Remove",
+      "view": "View",
+      "viewAll": "View all",
+      "details": "Details",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "dismiss": "Dismiss"
+    },
+    "fields": {
+      "plate": "Plate",
+      "holder": "Holder",
+      "name": "Name",
+      "email": "Email",
+      "type": "Type",
+      "date": "Date",
+      "status": "Status",
+      "source": "Source",
+      "reference": "Reference",
+      "note": "Note",
+      "gate": "Gate",
+      "time": "Time",
+      "entered": "Entered",
+      "exited": "Left",
+      "duration": "Parked for",
+      "created": "Created",
+      "requested": "Requested",
+      "decided": "Decided",
+      "decidedBy": "Decided by",
+      "permit": "Permit",
+      "alarm": "Alarm",
+      "direction": "Direction",
+      "result": "Result",
+      "actions": "Actions",
+      "lastLogin": "Last login",
+      "notification": "Notification"
+    },
+    "optional": "optional",
+    "emptyValue": "—",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "yes": "Yes",
+    "no": "No",
+    "you": "You",
+    "plateAria": "Plate {{plate}}",
+    "permitType": {
+      "permanent": "Permanent",
+      "daily": "Day"
+    },
+    "permitTypeLong": {
+      "permanent": "Permanent permit",
+      "daily": "Day permit"
+    },
+    "permitDailyOn": "Day permit, {{date}}",
+    "permitStatus": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "revoked": "Revoked"
+    },
+    "alarmStatus": {
+      "open": "Open",
+      "resolved": "Resolved"
+    },
+    "alarmType": {
+      "unauthorized_entry": "No permit",
+      "overstay": "Overstay"
+    },
+    "alarmTypeLong": {
+      "unauthorized_entry": "Entered without a valid permit",
+      "overstay": "Still parked after the day permit ended"
+    },
+    "access": {
+      "authorized": "Authorized",
+      "unauthorized": "Unauthorized"
+    },
+    "direction": {
+      "in": "In",
+      "out": "Out"
+    },
+    "directionLong": {
+      "in": "Check-in",
+      "out": "Check-out"
+    },
+    "source": {
+      "admin": "Admin",
+      "request": "Request"
+    },
+    "webhookStatus": {
+      "skipped": "Not sent",
+      "pending": "Sending…",
+      "sent": "Sent",
+      "failed": "Failed"
+    },
+    "validToday": "Valid today",
+    "datePassed": "Date passed",
+    "noPermit": "No permit",
+    "stillParked": "Still parked",
+    "leftLot": "Left the lot",
+    "time": {
+      "justNow": "Just now",
+      "today": "Today, {{time}}",
+      "yesterday": "Yesterday, {{time}}"
+    },
+    "duration": {
+      "minutes": "{{minutes}} min",
+      "hours": "{{hours}} h",
+      "hoursMinutes": "{{hours}} h {{minutes}} min",
+      "days": "{{days}} d",
+      "daysHours": "{{days}} d {{hours}} h"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "range": "{{from}}–{{to}} of {{total}}",
+      "previous": "Previous page",
+      "next": "Next page"
+    },
+    "language": {
+      "label": "Language",
+      "en": "English",
+      "de": "Deutsch",
+      "shortEn": "EN",
+      "shortDe": "DE"
+    }
+  },
+
+  "nav": {
+    "mainLabel": "Main navigation",
+    "skipToContent": "Skip to content",
+    "dashboard": "Dashboard",
+    "alarms": "Alarms",
+    "requests": "Requests",
+    "permits": "Permits",
+    "activity": "Activity",
+    "simulator": "Gate simulator",
+    "settings": "Settings",
+    "more": "More",
+    "logout": "Log out",
+    "signedInAs": "Signed in as {{name}}",
+    "openAlarms_one": "{{count}} open alarm",
+    "openAlarms_other": "{{count}} open alarms",
+    "pendingRequests_one": "{{count}} request waiting",
+    "pendingRequests_other": "{{count}} requests waiting",
+    "documentTitle": "{{page}} – ParkLens",
+    "documentTitleAlarms": "({{count}}) {{page}} – ParkLens",
+    "live": {
+      "connected": "Live",
+      "connecting": "Connecting…",
+      "reconnecting": "Reconnecting…",
+      "hintDisconnected": "Live updates are paused. New alarms may show up late."
+    },
+    "sound": {
+      "label": "Alarm sound",
+      "enabled": "Alarm sound on. You'll hear a chime for each new alarm.",
+      "disabled": "Alarm sound off"
+    }
+  },
+
+  "public": {
+    "homeLink": "ParkLens home",
+    "adminLogin": "Admin login",
+    "backToStart": "Back to start"
+  },
+
+  "landing": {
+    "title": "Parking at the office",
+    "lead": "A camera at the entrance reads each number plate and checks it against the permit list. Cars without a permit are reported to the parking team.",
+    "plateLabel": "Your plate",
+    "requestCta": "Request a permit",
+    "statusCta": "Check a request",
+    "statusHint": "Already sent a request? Look it up with your reference code.",
+    "stepsTitle": "How it works",
+    "steps": {
+      "request": {
+        "title": "Send a request",
+        "body": "A permanent permit for your own car, or a day permit for a visitor."
+      },
+      "decision": {
+        "title": "The parking team decides",
+        "body": "They approve or reject each request and can leave you a note."
+      },
+      "status": {
+        "title": "Check the status",
+        "body": "Open your status link, or enter the reference code and plate."
+      }
+    }
+  },
+
+  "request": {
+    "title": "Request a parking permit",
+    "lead": "Your request goes to the parking team. You'll get a reference code and a link to check the status.",
+    "typeLegend": "What do you need?",
+    "type": {
+      "permanent": {
+        "title": "Permanent permit",
+        "description": "For your own car. Valid until revoked."
+      },
+      "daily": {
+        "title": "Day permit",
+        "description": "For one day, e.g. a visitor or a one-off."
+      }
+    },
+    "plate": {
+      "label": "Licence plate",
+      "hint": "As shown on the plate, e.g. ZH 123 456."
+    },
+    "date": {
+      "label": "Date",
+      "hint": "Any day from today until {{maxDate}}."
+    },
+    "name": {
+      "labelPermanent": "Your name",
+      "labelDaily": "Driver's name",
+      "hintDaily": "For a visitor, enter their name and add your own name in the note."
+    },
+    "email": {
+      "labelPermanent": "Your email",
+      "labelDaily": "Contact email",
+      "hint": "Only used by the parking team if they have questions about this request."
+    },
+    "note": {
+      "label": "Note",
+      "placeholder": "e.g. visiting Anna Muster, Marketing",
+      "hint": "Anything the parking team should know."
+    },
+    "submit": "Send request",
+    "submitting": "Sending…",
+    "errors": {
+      "duplicate": "A request for this plate is already waiting for approval.",
+      "duplicateAction": "Check its status",
+      "alreadyPermitted": "This car already has a valid permit for this period. No new request needed.",
+      "rateLimited": "Too many requests from this network. Wait a minute and send it again."
+    },
+    "success": {
+      "title": "Request sent",
+      "lead": "The parking team will review your request for {{plate}}.",
+      "referenceLabel": "Reference code",
+      "linkLabel": "Status link",
+      "saveHint": "Save the link or note the reference code. To look up the request later, you need the code and your plate.",
+      "openStatus": "Open status page",
+      "another": "Request another permit"
+    }
+  },
+
+  "status": {
+    "lookup": {
+      "title": "Check a request",
+      "lead": "Enter the reference code from your confirmation and the plate you requested the permit for.",
+      "referenceLabel": "Reference code",
+      "referencePlaceholder": "PL-7K3Q9",
+      "plateLabel": "Licence plate",
+      "submit": "Check status",
+      "submitting": "Checking…",
+      "notFound": "No request matches this reference code and plate. Check both and try again."
+    },
+    "page": {
+      "title": "Request {{reference}}",
+      "pending": {
+        "title": "Waiting for approval",
+        "body": "The parking team hasn't decided yet. This page checks for updates every minute."
+      },
+      "approvedPermanent": {
+        "title": "Approved",
+        "body": "This car can park in the office lot."
+      },
+      "approvedDaily": {
+        "title": "Approved for {{date}}",
+        "body": "The car can park in the office lot on this day."
+      },
+      "expired": {
+        "title": "Day permit expired",
+        "body": "This permit was valid on {{date}}."
+      },
+      "rejected": {
+        "title": "Not approved",
+        "body": "The parking team rejected this request. If something has changed, send a new request."
+      },
+      "revoked": {
+        "title": "Permit revoked",
+        "body": "This permit is no longer valid. The car can't park in the office lot."
+      },
+      "decisionNote": "Note from the parking team",
+      "details": "Request details",
+      "lastChecked": "Last checked {{time}}",
+      "bookmarkHint": "Bookmark this page to check again later.",
+      "checkAnother": "Check another request",
+      "newRequest": "Send a new request"
+    },
+    "notFound": {
+      "title": "Request not found",
+      "body": "The link may be incomplete. Check it, or look up the request with your reference code and plate.",
+      "action": "Look up with reference code"
+    }
+  },
+
+  "login": {
+    "title": "Admin login",
+    "lead": "For the parking team.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "submit": "Log in",
+    "submitting": "Logging in…",
+    "sessionExpired": "Your session has expired. Log in again.",
+    "loggedOut": "You've been logged out.",
+    "publicHint": "Looking for a parking permit?",
+    "publicLink": "Request one here"
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "today": "Today, {{date}}",
+    "kpi": {
+      "openAlarms": "Open alarms",
+      "parkedNow": "Parked now",
+      "parkedUnauthorized_one": "{{count}} without permit",
+      "parkedUnauthorized_other": "{{count}} without permit",
+      "allParkedAuthorized": "All with permit",
+      "pendingRequests": "Requests waiting",
+      "entriesToday": "Entries today",
+      "activePermitsToday": "Valid permits today",
+      "viewAlarms": "View alarms",
+      "viewParked": "View parked cars",
+      "reviewRequests": "Review requests",
+      "viewLog": "View gate log",
+      "viewPermits": "View permits"
+    },
+    "openAlarms": {
+      "title": "Open alarms",
+      "emptyTitle": "No open alarms",
+      "emptyBody": "New alarms appear here instantly."
+    },
+    "parkedNow": {
+      "title": "Parked now",
+      "emptyTitle": "The lot is empty",
+      "emptyBody": "No cars are checked in right now."
+    },
+    "recentEvents": {
+      "title": "Latest gate events",
+      "emptyTitle": "No gate events yet",
+      "emptyBody": "Events appear when the camera reports a car."
+    },
+    "pendingRequests": {
+      "title": "Waiting for approval",
+      "emptyTitle": "No requests waiting",
+      "emptyBody": "New requests show up here as soon as they're sent."
+    }
+  },
+
+  "alarms": {
+    "title": "Alarms",
+    "tabs": {
+      "open": "Open",
+      "resolved": "Resolved",
+      "all": "All"
+    },
+    "searchLabel": "Search plate",
+    "searchPlaceholder": "e.g. ZH 999 999",
+    "previous_one": "{{count}} earlier alarm in 30 days",
+    "previous_other": "{{count}} earlier alarms in 30 days",
+    "plateHistory": "Plate history",
+    "resolvedBy": "Resolved by {{name}}, {{time}}",
+    "resolve": "Resolve",
+    "empty": {
+      "openTitle": "No open alarms",
+      "openBody": "Alarms appear here the moment a car without a valid permit enters.",
+      "resolvedTitle": "No resolved alarms yet",
+      "resolvedBody": "Resolved alarms are kept here with their notes.",
+      "allTitle": "No alarms yet",
+      "allBody": "Alarms appear here the moment a car without a valid permit enters.",
+      "searchTitle": "No alarms for {{plate}}",
+      "searchBody": "Check the plate or clear the search."
+    },
+    "webhook": {
+      "sent": "Notification sent",
+      "failed": "Notification failed",
+      "failedWithError": "Notification failed: {{error}}",
+      "pending": "Sending notification…",
+      "skipped": "No notification sent"
+    },
+    "banner": {
+      "regionLabel": "Live alarms",
+      "title": {
+        "unauthorized_entry": "Car without permit entered",
+        "overstay": "Car still parked after its day permit ended"
+      },
+      "meta": "{{time}} at gate {{gate}}",
+      "metaNoGate": "{{time}}",
+      "more_one": "{{count}} more open alarm",
+      "more_other": "{{count}} more open alarms",
+      "resolve": "Resolve",
+      "view": "View alarm",
+      "dismiss": "Hide this alert"
+    },
+    "announce": {
+      "unauthorized_entry": "Alarm: {{plate}} entered without a valid permit at {{time}}.",
+      "overstay": "Alarm: {{plate}} is still parked after its day permit ended."
+    },
+    "resolveDialog": {
+      "title": "Resolve alarm",
+      "noteLabel": "Note",
+      "notePlaceholder": "e.g. Visitor for Marco Rossi, confirmed by reception",
+      "noteHint": "Visible to other admins.",
+      "grantLabel": "Grant a day permit for today",
+      "grantHint": "For a legitimate visitor. The car counts as authorized for the rest of today.",
+      "grantHintLeft": "The car has already left. The permit still covers any return today.",
+      "holderNameLabel": "Driver's name",
+      "holderEmailLabel": "Email",
+      "submit": "Resolve alarm",
+      "submitGrant": "Resolve and grant permit",
+      "success": "Alarm resolved",
+      "successGrant": "Alarm resolved. Day permit granted to {{name}}.",
+      "alreadyResolved": "This alarm has already been resolved."
+    }
+  },
+
+  "requests": {
+    "title": "Requests",
+    "tabs": {
+      "pending": "Waiting",
+      "all": "All requests"
+    },
+    "requestedAt": "Requested: {{time}}",
+    "reference": "Ref. {{reference}}",
+    "permanent": "Permanent permit",
+    "dailyFor": "Day permit for {{date}}",
+    "addNote": "Add a note for the requester",
+    "noteLabel": "Note for the requester",
+    "noteHint": "Shown on the requester's status page.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "Request for {{plate}} approved",
+    "rejected": "Request for {{plate}} rejected",
+    "warnings": {
+      "datePassed": "The requested date ({{date}}) has passed, so it can't be approved anymore. Reject it instead.",
+      "hasPermanent": "{{plate}} already has a permanent permit ({{name}}).",
+      "hasDaily": "{{plate}} already has a day permit for this date ({{name}}).",
+      "duplicatePending": "Another request for this plate is also waiting."
+    },
+    "rejectDialog": {
+      "title": "Reject request for {{plate}}?",
+      "body": "{{name}} will see the rejection on their status page.",
+      "noteLabel": "Reason",
+      "notePlaceholder": "e.g. Please use the public car park on Bahnhofstrasse.",
+      "confirm": "Reject request"
+    },
+    "empty": {
+      "pendingTitle": "No requests waiting",
+      "pendingBody": "New requests show up here as soon as they're sent.",
+      "allTitle": "No requests yet",
+      "allBody": "Requests sent through the public form are listed here."
+    },
+    "newRequestToast": "New permit request from {{name}}",
+    "review": "Review"
+  },
+
+  "permits": {
+    "title": "Permits",
+    "create": "New permit",
+    "filters": {
+      "searchLabel": "Search",
+      "searchPlaceholder": "Plate or name",
+      "statusLabel": "Status",
+      "statusAll": "All statuses",
+      "typeLabel": "Type",
+      "typeAll": "All",
+      "activeToday": "Valid today only"
+    },
+    "sourceRequest": "Request {{reference}}",
+    "empty": {
+      "title": "No permits yet",
+      "body": "Create a permit for an employee's car, or approve a request.",
+      "filteredTitle": "No permits match these filters",
+      "filteredBody": "Try a different search or clear the filters."
+    },
+    "createDialog": {
+      "title": "New permit",
+      "lead": "Permits you create are approved right away.",
+      "holderNameLabel": "Holder name",
+      "holderEmailLabel": "Holder email",
+      "dateHint": "From today until {{maxDate}}.",
+      "noteLabel": "Internal note",
+      "submit": "Create permit",
+      "success": "Permit created for {{plate}}"
+    },
+    "detailsDialog": {
+      "title": "Permit {{plate}}",
+      "requestNote": "Request note",
+      "decisionNote": "Decision note",
+      "decidedAt": "Decided on",
+      "createdAt": "Created on",
+      "createdByAdmin": "Created by an admin",
+      "editHolder": "Edit holder",
+      "revoke": "Revoke permit"
+    },
+    "editDialog": {
+      "title": "Edit holder",
+      "submit": "Save changes",
+      "success": "Holder updated"
+    },
+    "revokeDialog": {
+      "title": "Revoke permit for {{plate}}?",
+      "body": "{{name}}'s car will raise an alarm the next time it enters. This can't be undone.",
+      "noteLabel": "Reason",
+      "confirm": "Revoke permit",
+      "success": "Permit for {{plate}} revoked"
+    }
+  },
+
+  "activity": {
+    "title": "Activity",
+    "tabs": {
+      "parked": "Parked now",
+      "log": "Gate log"
+    },
+    "openAlarm": "Open alarm",
+    "viewAlarm": "View alarm",
+    "cameraRead": "Camera read: {{raw}}",
+    "filters": {
+      "plateLabel": "Plate",
+      "platePlaceholder": "e.g. ZH 123 456",
+      "directionLabel": "Direction",
+      "directionAll": "All",
+      "resultLabel": "Result",
+      "resultAll": "All results"
+    },
+    "empty": {
+      "parkedTitle": "The lot is empty",
+      "parkedBody": "No cars are checked in right now.",
+      "logTitle": "No gate events yet",
+      "logBody": "Events appear when the camera reports a car, or when you use the gate simulator.",
+      "logAction": "Open gate simulator",
+      "filteredTitle": "No events match these filters",
+      "filteredBody": "Try a different plate or clear the filters."
+    }
+  },
+
+  "simulator": {
+    "title": "Gate simulator",
+    "lead": "Sends check-ins and check-outs exactly like the entrance camera. The events are real: they create sessions, alarms and notifications.",
+    "formTitle": "Simulate a car",
+    "plateLabel": "Plate",
+    "enterHint": "Press Enter to check in.",
+    "demoLabel": "Demo plates",
+    "demo": {
+      "permanent": "Permanent permit",
+      "daily": "Day permit today",
+      "none": "No permit",
+      "pending": "Request pending",
+      "rejected": "Request rejected",
+      "random": "Random plate"
+    },
+    "gateLabel": "Gate",
+    "gateHint": "Identifies the camera, e.g. main-entrance.",
+    "gateDefault": "simulator",
+    "timeToggle": "Set event time",
+    "timeLabel": "Event time",
+    "timeHint": "Leave empty to use the current time.",
+    "checkIn": "Check in",
+    "checkOut": "Check out",
+    "resultsTitle": "Results",
+    "clearResults": "Clear results",
+    "result": {
+      "allowed": "Entry allowed",
+      "denied": "No valid permit",
+      "reason": {
+        "PERMANENT_PERMIT": "Permanent permit: {{name}}",
+        "DAILY_PERMIT": "Day permit for {{date}}: {{name}}",
+        "NO_VALID_PERMIT": "Alarm raised."
+      },
+      "viewAlarm": "View alarm",
+      "checkedOut": "Checked out",
+      "parkedFor": "Parked for {{duration}}",
+      "noSession": "No car with this plate was checked in. The exit is recorded anyway.",
+      "meta": "{{direction}}, gate {{gate}}",
+      "metaNoGate": "{{direction}}"
+    },
+    "empty": {
+      "title": "No simulated events yet",
+      "body": "Pick a demo plate or type one, then check in."
+    }
+  },
+
+  "settings": {
+    "title": "Settings",
+    "notifications": {
+      "title": "Alarm notifications",
+      "lead": "Post each new alarm to a chat channel, for example in Slack or Microsoft Teams.",
+      "enabledLabel": "Send alarm notifications",
+      "urlLabel": "Webhook URL",
+      "urlHint": "Create an incoming webhook in Slack, or a workflow in Teams, and paste its URL here.",
+      "formatLabel": "Format",
+      "format": {
+        "generic": "Generic JSON",
+        "slack": "Slack",
+        "teams": "Microsoft Teams"
+      },
+      "save": "Save changes",
+      "saved": "Notification settings saved",
+      "test": "Send test message",
+      "testing": "Sending…",
+      "testUnsaved": "Save your changes before sending a test.",
+      "testDisabled": "Turn on notifications and save to send a test.",
+      "testOk": "Test message delivered (HTTP {{status}}).",
+      "testFailed": "Test message failed: {{error}}",
+      "testFailedStatus": "Test message failed (HTTP {{status}})."
+    },
+    "camera": {
+      "title": "Camera connection",
+      "lead": "Point the entrance camera or gate controller at these endpoints.",
+      "checkInLabel": "Check-in endpoint",
+      "checkOutLabel": "Check-out endpoint",
+      "apiKeyLabel": "API key",
+      "apiKeyHint": "Sent as the X-API-Key header. The full key is set on the server (GATE_API_KEY).",
+      "timezoneLabel": "Timezone",
+      "timezoneHint": "Decides which calendar day a day permit is valid on."
+    },
+    "admins": {
+      "title": "Admins",
+      "lead": "People who can log in and manage parking.",
+      "add": "Add admin",
+      "never": "Never",
+      "remove": "Remove",
+      "cannotRemoveSelf": "You can't remove yourself.",
+      "removeDialog": {
+        "title": "Remove {{name}}?",
+        "body": "{{email}} won't be able to log in anymore.",
+        "confirm": "Remove admin"
+      },
+      "removed": "{{name}} removed",
+      "addDialog": {
+        "title": "Add admin",
+        "nameLabel": "Name",
+        "emailLabel": "Email",
+        "passwordLabel": "Initial password",
+        "passwordHint": "At least 10 characters. Share it with them securely.",
+        "submit": "Add admin"
+      },
+      "added": "{{name}} can now log in",
+      "duplicateEmail": "An admin with this email already exists."
+    },
+    "account": {
+      "title": "Your password",
+      "currentLabel": "Current password",
+      "newLabel": "New password",
+      "newHint": "At least 10 characters.",
+      "confirmLabel": "Repeat new password",
+      "submit": "Change password",
+      "success": "Password changed",
+      "wrongCurrent": "The current password is incorrect."
+    }
+  },
+
+  "errors": {
+    "VALIDATION_ERROR": "Some fields need attention. Check the highlighted fields.",
+    "INVALID_PLATE": "This doesn't look like a valid plate. Use 2 to 12 letters and digits.",
+    "UNAUTHORIZED": "Your session has expired. Log in again.",
+    "INVALID_CREDENTIALS": "Email or password is incorrect.",
+    "NOT_FOUND": "This item doesn't exist anymore. It may have been removed.",
+    "DUPLICATE_REQUEST": "A request for this plate is already waiting for approval.",
+    "ALREADY_PERMITTED": "This car already has a valid permit for this period.",
+    "INVALID_STATE": "Someone changed this in the meantime. The list has been refreshed.",
+    "DATE_IN_PAST": "This date has passed. Choose today or a later date.",
+    "DATE_TOO_FAR": "This date is too far ahead.",
+    "CANNOT_DELETE_SELF": "You can't remove your own account.",
+    "LAST_ADMIN": "At least one admin is needed. Add another admin first.",
+    "EMAIL_TAKEN": "An admin with this email already exists.",
+    "RATE_LIMITED": "Too many attempts. Wait a minute and try again.",
+    "INTERNAL": "Something went wrong on the server. Try again in a moment.",
+    "NETWORK": "No connection to the server. Check your network and try again.",
+    "UNKNOWN": "Something unexpected happened. Try again.",
+    "loadFailedTitle": "Couldn't load this data",
+    "loadFailedBody": "Check your connection and try again.",
+    "notFoundPage": {
+      "title": "Page not found",
+      "body": "This address doesn't exist. Check the link or go back to the start.",
+      "action": "Back to start"
+    }
+  },
+
+  "validation": {
+    "summary_one": "{{count}} field needs attention.",
+    "summary_other": "{{count}} fields need attention.",
+    "plateRequired": "Enter the licence plate.",
+    "plateInvalid": "Use 2 to 12 letters and digits, e.g. ZH 123 456.",
+    "nameRequired": "Enter a name.",
+    "nameTooShort": "Enter at least {{min}} characters.",
+    "emailRequired": "Enter an email address.",
+    "emailInvalid": "Enter a valid email address, e.g. name@company.ch.",
+    "dateRequired": "Choose a date.",
+    "dateInPast": "Choose today or a later date.",
+    "dateTooFar": "Choose a date up to {{date}}.",
+    "tooLong": "Use at most {{max}} characters.",
+    "passwordRequired": "Enter the password.",
+    "passwordTooShort": "Use at least {{min}} characters.",
+    "passwordMismatch": "The passwords don't match.",
+    "urlRequired": "Enter the webhook URL.",
+    "urlInvalid": "Enter a URL starting with https:// or http://.",
+    "referenceRequired": "Enter the reference code.",
+    "gateTooLong": "Use at most {{max}} characters."
+  }
+}

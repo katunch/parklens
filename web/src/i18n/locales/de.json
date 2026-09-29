@@ -1,0 +1,718 @@
+{
+  "common": {
+    "appName": "ParkLens",
+    "actions": {
+      "save": "Speichern",
+      "saveChanges": "Änderungen speichern",
+      "cancel": "Abbrechen",
+      "close": "Schliessen",
+      "back": "Zurück",
+      "tryAgain": "Erneut versuchen",
+      "copy": "Kopieren",
+      "copyLink": "Link kopieren",
+      "copied": "Kopiert",
+      "refresh": "Aktualisieren",
+      "clearFilters": "Filter zurücksetzen",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "edit": "Bearbeiten",
+      "remove": "Entfernen",
+      "view": "Anzeigen",
+      "viewAll": "Alle anzeigen",
+      "details": "Details",
+      "showPassword": "Passwort anzeigen",
+      "hidePassword": "Passwort verbergen",
+      "dismiss": "Ausblenden"
+    },
+    "fields": {
+      "plate": "Kontrollschild",
+      "holder": "Inhaber/in",
+      "name": "Name",
+      "email": "E-Mail",
+      "type": "Art",
+      "date": "Datum",
+      "status": "Status",
+      "source": "Herkunft",
+      "reference": "Referenz",
+      "note": "Notiz",
+      "gate": "Tor",
+      "time": "Zeit",
+      "entered": "Eingefahren",
+      "exited": "Ausgefahren",
+      "duration": "Parkdauer",
+      "created": "Erstellt",
+      "requested": "Beantragt",
+      "decided": "Entschieden",
+      "decidedBy": "Entschieden von",
+      "permit": "Bewilligung",
+      "alarm": "Alarm",
+      "direction": "Richtung",
+      "result": "Ergebnis",
+      "actions": "Aktionen",
+      "lastLogin": "Letzte Anmeldung",
+      "notification": "Benachrichtigung"
+    },
+    "optional": "optional",
+    "emptyValue": "—",
+    "loading": "Wird geladen…",
+    "saving": "Wird gespeichert…",
+    "yes": "Ja",
+    "no": "Nein",
+    "you": "Sie",
+    "plateAria": "Kontrollschild {{plate}}",
+    "permitType": {
+      "permanent": "Dauer",
+      "daily": "Tag"
+    },
+    "permitTypeLong": {
+      "permanent": "Dauerbewilligung",
+      "daily": "Tagesbewilligung"
+    },
+    "permitDailyOn": "Tagesbewilligung, {{date}}",
+    "permitStatus": {
+      "pending": "In Prüfung",
+      "approved": "Bewilligt",
+      "rejected": "Abgelehnt",
+      "revoked": "Widerrufen"
+    },
+    "alarmStatus": {
+      "open": "Offen",
+      "resolved": "Erledigt"
+    },
+    "alarmType": {
+      "unauthorized_entry": "Ohne Bewilligung",
+      "overstay": "Überzeit"
+    },
+    "alarmTypeLong": {
+      "unauthorized_entry": "Ohne gültige Bewilligung eingefahren",
+      "overstay": "Nach Ablauf der Tagesbewilligung noch parkiert"
+    },
+    "access": {
+      "authorized": "Berechtigt",
+      "unauthorized": "Unberechtigt"
+    },
+    "direction": {
+      "in": "Ein",
+      "out": "Aus"
+    },
+    "directionLong": {
+      "in": "Einfahrt",
+      "out": "Ausfahrt"
+    },
+    "source": {
+      "admin": "Admin",
+      "request": "Gesuch"
+    },
+    "webhookStatus": {
+      "skipped": "Nicht gesendet",
+      "pending": "Wird gesendet…",
+      "sent": "Gesendet",
+      "failed": "Fehlgeschlagen"
+    },
+    "validToday": "Heute gültig",
+    "datePassed": "Datum vorbei",
+    "noPermit": "Ohne Bewilligung",
+    "stillParked": "Noch parkiert",
+    "leftLot": "Weggefahren",
+    "time": {
+      "justNow": "Gerade eben",
+      "today": "Heute, {{time}}",
+      "yesterday": "Gestern, {{time}}"
+    },
+    "duration": {
+      "minutes": "{{minutes}} Min.",
+      "hours": "{{hours}} Std.",
+      "hoursMinutes": "{{hours}} Std. {{minutes}} Min.",
+      "days": "{{days}} T.",
+      "daysHours": "{{days}} T. {{hours}} Std."
+    },
+    "pagination": {
+      "label": "Seitennavigation",
+      "range": "{{from}}–{{to}} von {{total}}",
+      "previous": "Vorherige Seite",
+      "next": "Nächste Seite"
+    },
+    "language": {
+      "label": "Sprache",
+      "en": "English",
+      "de": "Deutsch",
+      "shortEn": "EN",
+      "shortDe": "DE"
+    }
+  },
+
+  "nav": {
+    "mainLabel": "Hauptnavigation",
+    "skipToContent": "Zum Inhalt springen",
+    "dashboard": "Übersicht",
+    "alarms": "Alarme",
+    "requests": "Gesuche",
+    "permits": "Bewilligungen",
+    "activity": "Aktivität",
+    "simulator": "Tor-Simulator",
+    "settings": "Einstellungen",
+    "more": "Mehr",
+    "logout": "Abmelden",
+    "signedInAs": "Angemeldet als {{name}}",
+    "openAlarms_one": "{{count}} offener Alarm",
+    "openAlarms_other": "{{count}} offene Alarme",
+    "pendingRequests_one": "{{count}} Gesuch wartet",
+    "pendingRequests_other": "{{count}} Gesuche warten",
+    "documentTitle": "{{page}} – ParkLens",
+    "documentTitleAlarms": "({{count}}) {{page}} – ParkLens",
+    "live": {
+      "connected": "Live",
+      "connecting": "Verbindung wird aufgebaut…",
+      "reconnecting": "Verbindung wird wiederhergestellt…",
+      "hintDisconnected": "Live-Aktualisierung unterbrochen. Neue Alarme erscheinen möglicherweise verspätet."
+    },
+    "sound": {
+      "label": "Alarmton",
+      "enabled": "Alarmton ein. Bei jedem neuen Alarm ertönt ein Signal.",
+      "disabled": "Alarmton aus"
+    }
+  },
+
+  "public": {
+    "homeLink": "ParkLens Startseite",
+    "adminLogin": "Admin-Login",
+    "backToStart": "Zurück zur Startseite"
+  },
+
+  "landing": {
+    "title": "Parkieren beim Büro",
+    "lead": "Eine Kamera an der Einfahrt liest jedes Kontrollschild und prüft es gegen die Liste der Bewilligungen. Autos ohne Bewilligung werden dem Parkplatz-Team gemeldet.",
+    "plateLabel": "Ihr Kontrollschild",
+    "requestCta": "Bewilligung beantragen",
+    "statusCta": "Status abfragen",
+    "statusHint": "Haben Sie bereits ein Gesuch gesendet? Fragen Sie den Status mit Ihrem Referenzcode ab.",
+    "stepsTitle": "So funktioniert es",
+    "steps": {
+      "request": {
+        "title": "Gesuch senden",
+        "body": "Eine Dauerbewilligung für Ihr eigenes Auto oder eine Tagesbewilligung für Besuch."
+      },
+      "decision": {
+        "title": "Das Parkplatz-Team entscheidet",
+        "body": "Es bewilligt oder lehnt jedes Gesuch ab und kann Ihnen eine Notiz hinterlassen."
+      },
+      "status": {
+        "title": "Status abfragen",
+        "body": "Öffnen Sie Ihren Status-Link oder geben Sie Referenzcode und Kontrollschild ein."
+      }
+    }
+  },
+
+  "request": {
+    "title": "Parkbewilligung beantragen",
+    "lead": "Ihr Gesuch geht an das Parkplatz-Team. Sie erhalten einen Referenzcode und einen Link, um den Status abzufragen.",
+    "typeLegend": "Was benötigen Sie?",
+    "type": {
+      "permanent": {
+        "title": "Dauerbewilligung",
+        "description": "Für Ihr eigenes Auto. Gültig bis auf Widerruf."
+      },
+      "daily": {
+        "title": "Tagesbewilligung",
+        "description": "Für einen Tag, z. B. für Besuch oder eine Ausnahme."
+      }
+    },
+    "plate": {
+      "label": "Kontrollschild",
+      "hint": "Wie auf dem Schild, z. B. ZH 123 456."
+    },
+    "date": {
+      "label": "Datum",
+      "hint": "Ein Tag von heute bis {{maxDate}}."
+    },
+    "name": {
+      "labelPermanent": "Ihr Name",
+      "labelDaily": "Name Fahrer/in",
+      "hintDaily": "Bei Besuch den Namen der Besucherin oder des Besuchers eingeben und Ihren eigenen Namen in der Notiz ergänzen."
+    },
+    "email": {
+      "labelPermanent": "Ihre E-Mail",
+      "labelDaily": "Kontakt-E-Mail",
+      "hint": "Wird nur verwendet, falls das Parkplatz-Team Fragen zu diesem Gesuch hat."
+    },
+    "note": {
+      "label": "Notiz",
+      "placeholder": "z. B. Besuch bei Anna Muster, Marketing",
+      "hint": "Was das Parkplatz-Team wissen sollte."
+    },
+    "submit": "Gesuch senden",
+    "submitting": "Wird gesendet…",
+    "errors": {
+      "duplicate": "Für dieses Kontrollschild wartet bereits ein Gesuch auf die Bewilligung.",
+      "duplicateAction": "Status abfragen",
+      "alreadyPermitted": "Dieses Auto hat für diesen Zeitraum bereits eine gültige Bewilligung. Ein neues Gesuch ist nicht nötig.",
+      "rateLimited": "Zu viele Gesuche aus diesem Netzwerk. Bitte warten Sie eine Minute und senden Sie es erneut."
+    },
+    "success": {
+      "title": "Gesuch gesendet",
+      "lead": "Das Parkplatz-Team prüft Ihr Gesuch für {{plate}}.",
+      "referenceLabel": "Referenzcode",
+      "linkLabel": "Status-Link",
+      "saveHint": "Speichern Sie den Link oder notieren Sie den Referenzcode. Für eine spätere Abfrage benötigen Sie den Code und Ihr Kontrollschild.",
+      "openStatus": "Status-Seite öffnen",
+      "another": "Weitere Bewilligung beantragen"
+    }
+  },
+
+  "status": {
+    "lookup": {
+      "title": "Gesuch abfragen",
+      "lead": "Geben Sie den Referenzcode aus Ihrer Bestätigung und das beantragte Kontrollschild ein.",
+      "referenceLabel": "Referenzcode",
+      "referencePlaceholder": "PL-7K3Q9",
+      "plateLabel": "Kontrollschild",
+      "submit": "Status abfragen",
+      "submitting": "Wird geprüft…",
+      "notFound": "Zu diesem Referenzcode und Kontrollschild gibt es kein Gesuch. Prüfen Sie beide Angaben und versuchen Sie es erneut."
+    },
+    "page": {
+      "title": "Gesuch {{reference}}",
+      "pending": {
+        "title": "Wartet auf Bewilligung",
+        "body": "Das Parkplatz-Team hat noch nicht entschieden. Diese Seite prüft jede Minute, ob es Neuigkeiten gibt."
+      },
+      "approvedPermanent": {
+        "title": "Bewilligt",
+        "body": "Dieses Auto darf auf dem Firmenparkplatz parkieren."
+      },
+      "approvedDaily": {
+        "title": "Bewilligt für {{date}}",
+        "body": "Das Auto darf an diesem Tag auf dem Firmenparkplatz parkieren."
+      },
+      "expired": {
+        "title": "Tagesbewilligung abgelaufen",
+        "body": "Diese Bewilligung war am {{date}} gültig."
+      },
+      "rejected": {
+        "title": "Nicht bewilligt",
+        "body": "Das Parkplatz-Team hat dieses Gesuch abgelehnt. Falls sich etwas geändert hat, senden Sie ein neues Gesuch."
+      },
+      "revoked": {
+        "title": "Bewilligung widerrufen",
+        "body": "Diese Bewilligung ist nicht mehr gültig. Das Auto darf nicht mehr auf dem Firmenparkplatz parkieren."
+      },
+      "decisionNote": "Notiz vom Parkplatz-Team",
+      "details": "Angaben zum Gesuch",
+      "lastChecked": "Zuletzt geprüft {{time}}",
+      "bookmarkHint": "Setzen Sie ein Lesezeichen, um später erneut nachzusehen.",
+      "checkAnother": "Anderes Gesuch abfragen",
+      "newRequest": "Neues Gesuch senden"
+    },
+    "notFound": {
+      "title": "Gesuch nicht gefunden",
+      "body": "Der Link ist möglicherweise unvollständig. Prüfen Sie ihn oder fragen Sie das Gesuch mit Referenzcode und Kontrollschild ab.",
+      "action": "Mit Referenzcode abfragen"
+    }
+  },
+
+  "login": {
+    "title": "Admin-Login",
+    "lead": "Für das Parkplatz-Team.",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Passwort",
+    "submit": "Anmelden",
+    "submitting": "Wird angemeldet…",
+    "sessionExpired": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    "loggedOut": "Sie wurden abgemeldet.",
+    "publicHint": "Suchen Sie eine Parkbewilligung?",
+    "publicLink": "Hier beantragen"
+  },
+
+  "dashboard": {
+    "title": "Übersicht",
+    "today": "Heute, {{date}}",
+    "kpi": {
+      "openAlarms": "Offene Alarme",
+      "parkedNow": "Jetzt parkiert",
+      "parkedUnauthorized_one": "{{count}} ohne Bewilligung",
+      "parkedUnauthorized_other": "{{count}} ohne Bewilligung",
+      "allParkedAuthorized": "Alle mit Bewilligung",
+      "pendingRequests": "Wartende Gesuche",
+      "entriesToday": "Einfahrten heute",
+      "activePermitsToday": "Heute gültige Bewilligungen",
+      "viewAlarms": "Alarme anzeigen",
+      "viewParked": "Parkierte Autos anzeigen",
+      "reviewRequests": "Gesuche prüfen",
+      "viewLog": "Tor-Protokoll anzeigen",
+      "viewPermits": "Bewilligungen anzeigen"
+    },
+    "openAlarms": {
+      "title": "Offene Alarme",
+      "emptyTitle": "Keine offenen Alarme",
+      "emptyBody": "Neue Alarme erscheinen hier sofort."
+    },
+    "parkedNow": {
+      "title": "Jetzt parkiert",
+      "emptyTitle": "Der Parkplatz ist leer",
+      "emptyBody": "Zurzeit sind keine Autos parkiert."
+    },
+    "recentEvents": {
+      "title": "Letzte Tor-Ereignisse",
+      "emptyTitle": "Noch keine Tor-Ereignisse",
+      "emptyBody": "Ereignisse erscheinen, sobald die Kamera ein Auto meldet."
+    },
+    "pendingRequests": {
+      "title": "Warten auf Bewilligung",
+      "emptyTitle": "Keine wartenden Gesuche",
+      "emptyBody": "Neue Gesuche erscheinen hier, sobald sie gesendet werden."
+    }
+  },
+
+  "alarms": {
+    "title": "Alarme",
+    "tabs": {
+      "open": "Offen",
+      "resolved": "Erledigt",
+      "all": "Alle"
+    },
+    "searchLabel": "Kontrollschild suchen",
+    "searchPlaceholder": "z. B. ZH 999 999",
+    "previous_one": "{{count}} weiterer Alarm in 30 Tagen",
+    "previous_other": "{{count}} weitere Alarme in 30 Tagen",
+    "plateHistory": "Verlauf dieses Schilds",
+    "resolvedBy": "Erledigt von {{name}}, {{time}}",
+    "resolve": "Erledigen",
+    "empty": {
+      "openTitle": "Keine offenen Alarme",
+      "openBody": "Alarme erscheinen hier, sobald ein Auto ohne gültige Bewilligung einfährt.",
+      "resolvedTitle": "Noch keine erledigten Alarme",
+      "resolvedBody": "Erledigte Alarme werden hier mit ihren Notizen aufbewahrt.",
+      "allTitle": "Noch keine Alarme",
+      "allBody": "Alarme erscheinen hier, sobald ein Auto ohne gültige Bewilligung einfährt.",
+      "searchTitle": "Keine Alarme für {{plate}}",
+      "searchBody": "Prüfen Sie das Kontrollschild oder setzen Sie die Suche zurück."
+    },
+    "webhook": {
+      "sent": "Benachrichtigung gesendet",
+      "failed": "Benachrichtigung fehlgeschlagen",
+      "failedWithError": "Benachrichtigung fehlgeschlagen: {{error}}",
+      "pending": "Benachrichtigung wird gesendet…",
+      "skipped": "Keine Benachrichtigung gesendet"
+    },
+    "banner": {
+      "regionLabel": "Live-Alarme",
+      "title": {
+        "unauthorized_entry": "Auto ohne Bewilligung eingefahren",
+        "overstay": "Auto nach Ablauf der Tagesbewilligung noch parkiert"
+      },
+      "meta": "{{time}} an Tor {{gate}}",
+      "metaNoGate": "{{time}}",
+      "more_one": "{{count}} weiterer offener Alarm",
+      "more_other": "{{count}} weitere offene Alarme",
+      "resolve": "Erledigen",
+      "view": "Alarm anzeigen",
+      "dismiss": "Diese Meldung ausblenden"
+    },
+    "announce": {
+      "unauthorized_entry": "Alarm: {{plate}} ist um {{time}} ohne gültige Bewilligung eingefahren.",
+      "overstay": "Alarm: {{plate}} ist nach Ablauf der Tagesbewilligung noch parkiert."
+    },
+    "resolveDialog": {
+      "title": "Alarm erledigen",
+      "noteLabel": "Notiz",
+      "notePlaceholder": "z. B. Besuch für Marco Rossi, vom Empfang bestätigt",
+      "noteHint": "Für andere Admins sichtbar.",
+      "grantLabel": "Tagesbewilligung für heute erteilen",
+      "grantHint": "Für legitimen Besuch. Das Auto gilt für den Rest des Tages als berechtigt.",
+      "grantHintLeft": "Das Auto ist bereits weggefahren. Die Bewilligung gilt trotzdem, falls es heute zurückkommt.",
+      "holderNameLabel": "Name Fahrer/in",
+      "holderEmailLabel": "E-Mail",
+      "submit": "Alarm erledigen",
+      "submitGrant": "Erledigen und Bewilligung erteilen",
+      "success": "Alarm erledigt",
+      "successGrant": "Alarm erledigt. Tagesbewilligung für {{name}} erteilt.",
+      "alreadyResolved": "Dieser Alarm wurde bereits erledigt."
+    }
+  },
+
+  "requests": {
+    "title": "Gesuche",
+    "tabs": {
+      "pending": "Wartend",
+      "all": "Alle Gesuche"
+    },
+    "requestedAt": "Beantragt: {{time}}",
+    "reference": "Ref. {{reference}}",
+    "permanent": "Dauerbewilligung",
+    "dailyFor": "Tagesbewilligung für {{date}}",
+    "addNote": "Notiz an Antragsteller/in hinzufügen",
+    "noteLabel": "Notiz an Antragsteller/in",
+    "noteHint": "Wird auf der Status-Seite angezeigt.",
+    "approve": "Bewilligen",
+    "reject": "Ablehnen",
+    "approved": "Gesuch für {{plate}} bewilligt",
+    "rejected": "Gesuch für {{plate}} abgelehnt",
+    "warnings": {
+      "datePassed": "Das beantragte Datum ({{date}}) ist vorbei. Das Gesuch kann nicht mehr bewilligt werden, bitte lehnen Sie es ab.",
+      "hasPermanent": "{{plate}} hat bereits eine Dauerbewilligung ({{name}}).",
+      "hasDaily": "{{plate}} hat für dieses Datum bereits eine Tagesbewilligung ({{name}}).",
+      "duplicatePending": "Für dieses Kontrollschild wartet noch ein weiteres Gesuch."
+    },
+    "rejectDialog": {
+      "title": "Gesuch für {{plate}} ablehnen?",
+      "body": "{{name}} sieht die Ablehnung auf der Status-Seite.",
+      "noteLabel": "Begründung",
+      "notePlaceholder": "z. B. Bitte nutzen Sie das öffentliche Parkhaus an der Bahnhofstrasse.",
+      "confirm": "Gesuch ablehnen"
+    },
+    "empty": {
+      "pendingTitle": "Keine wartenden Gesuche",
+      "pendingBody": "Neue Gesuche erscheinen hier, sobald sie gesendet werden.",
+      "allTitle": "Noch keine Gesuche",
+      "allBody": "Gesuche aus dem öffentlichen Formular werden hier aufgelistet."
+    },
+    "newRequestToast": "Neues Gesuch von {{name}}",
+    "review": "Prüfen"
+  },
+
+  "permits": {
+    "title": "Bewilligungen",
+    "create": "Neue Bewilligung",
+    "filters": {
+      "searchLabel": "Suche",
+      "searchPlaceholder": "Kontrollschild oder Name",
+      "statusLabel": "Status",
+      "statusAll": "Alle Status",
+      "typeLabel": "Art",
+      "typeAll": "Alle",
+      "activeToday": "Nur heute gültige"
+    },
+    "sourceRequest": "Gesuch {{reference}}",
+    "empty": {
+      "title": "Noch keine Bewilligungen",
+      "body": "Erstellen Sie eine Bewilligung für das Auto einer Mitarbeiterin oder eines Mitarbeiters, oder bewilligen Sie ein Gesuch.",
+      "filteredTitle": "Keine Bewilligungen für diese Filter",
+      "filteredBody": "Versuchen Sie eine andere Suche oder setzen Sie die Filter zurück."
+    },
+    "createDialog": {
+      "title": "Neue Bewilligung",
+      "lead": "Von Ihnen erstellte Bewilligungen gelten sofort.",
+      "holderNameLabel": "Name Inhaber/in",
+      "holderEmailLabel": "E-Mail Inhaber/in",
+      "dateHint": "Von heute bis {{maxDate}}.",
+      "noteLabel": "Interne Notiz",
+      "submit": "Bewilligung erstellen",
+      "success": "Bewilligung für {{plate}} erstellt"
+    },
+    "detailsDialog": {
+      "title": "Bewilligung {{plate}}",
+      "requestNote": "Notiz zum Gesuch",
+      "decisionNote": "Notiz zum Entscheid",
+      "decidedAt": "Entschieden am",
+      "createdAt": "Erstellt am",
+      "createdByAdmin": "Von Admin erstellt",
+      "editHolder": "Inhaber/in bearbeiten",
+      "revoke": "Bewilligung widerrufen"
+    },
+    "editDialog": {
+      "title": "Inhaber/in bearbeiten",
+      "submit": "Änderungen speichern",
+      "success": "Inhaber/in aktualisiert"
+    },
+    "revokeDialog": {
+      "title": "Bewilligung für {{plate}} widerrufen?",
+      "body": "Das Auto von {{name}} löst bei der nächsten Einfahrt einen Alarm aus. Dies kann nicht rückgängig gemacht werden.",
+      "noteLabel": "Begründung",
+      "confirm": "Bewilligung widerrufen",
+      "success": "Bewilligung für {{plate}} widerrufen"
+    }
+  },
+
+  "activity": {
+    "title": "Aktivität",
+    "tabs": {
+      "parked": "Jetzt parkiert",
+      "log": "Tor-Protokoll"
+    },
+    "openAlarm": "Offener Alarm",
+    "viewAlarm": "Alarm anzeigen",
+    "cameraRead": "Von der Kamera gelesen: {{raw}}",
+    "filters": {
+      "plateLabel": "Kontrollschild",
+      "platePlaceholder": "z. B. ZH 123 456",
+      "directionLabel": "Richtung",
+      "directionAll": "Alle",
+      "resultLabel": "Ergebnis",
+      "resultAll": "Alle Ergebnisse"
+    },
+    "empty": {
+      "parkedTitle": "Der Parkplatz ist leer",
+      "parkedBody": "Zurzeit sind keine Autos parkiert.",
+      "logTitle": "Noch keine Tor-Ereignisse",
+      "logBody": "Ereignisse erscheinen, sobald die Kamera ein Auto meldet oder Sie den Tor-Simulator verwenden.",
+      "logAction": "Tor-Simulator öffnen",
+      "filteredTitle": "Keine Ereignisse für diese Filter",
+      "filteredBody": "Versuchen Sie ein anderes Kontrollschild oder setzen Sie die Filter zurück."
+    }
+  },
+
+  "simulator": {
+    "title": "Tor-Simulator",
+    "lead": "Sendet Ein- und Ausfahrten genau wie die Kamera an der Einfahrt. Die Ereignisse sind echt: Sie erzeugen Parkvorgänge, Alarme und Benachrichtigungen.",
+    "formTitle": "Auto simulieren",
+    "plateLabel": "Kontrollschild",
+    "enterHint": "Mit Enter wird eine Einfahrt gesendet.",
+    "demoLabel": "Demo-Kontrollschilder",
+    "demo": {
+      "permanent": "Dauerbewilligung",
+      "daily": "Tagesbewilligung heute",
+      "none": "Ohne Bewilligung",
+      "pending": "Gesuch in Prüfung",
+      "rejected": "Gesuch abgelehnt",
+      "random": "Zufälliges Schild"
+    },
+    "gateLabel": "Tor",
+    "gateHint": "Bezeichnet die Kamera, z. B. main-entrance.",
+    "gateDefault": "simulator",
+    "timeToggle": "Zeitpunkt festlegen",
+    "timeLabel": "Zeitpunkt",
+    "timeHint": "Leer lassen für die aktuelle Zeit.",
+    "checkIn": "Einfahren",
+    "checkOut": "Ausfahren",
+    "resultsTitle": "Ergebnisse",
+    "clearResults": "Ergebnisse löschen",
+    "result": {
+      "allowed": "Zufahrt erlaubt",
+      "denied": "Keine gültige Bewilligung",
+      "reason": {
+        "PERMANENT_PERMIT": "Dauerbewilligung: {{name}}",
+        "DAILY_PERMIT": "Tagesbewilligung für {{date}}: {{name}}",
+        "NO_VALID_PERMIT": "Alarm ausgelöst."
+      },
+      "viewAlarm": "Alarm anzeigen",
+      "checkedOut": "Ausgefahren",
+      "parkedFor": "Parkdauer {{duration}}",
+      "noSession": "Kein Auto mit diesem Kontrollschild war eingefahren. Die Ausfahrt wird trotzdem erfasst.",
+      "meta": "{{direction}}, Tor {{gate}}",
+      "metaNoGate": "{{direction}}"
+    },
+    "empty": {
+      "title": "Noch keine simulierten Ereignisse",
+      "body": "Wählen Sie ein Demo-Kontrollschild oder geben Sie eines ein, dann klicken Sie auf «Einfahren»."
+    }
+  },
+
+  "settings": {
+    "title": "Einstellungen",
+    "notifications": {
+      "title": "Alarm-Benachrichtigungen",
+      "lead": "Jeden neuen Alarm in einen Chat-Kanal senden, zum Beispiel in Slack oder Microsoft Teams.",
+      "enabledLabel": "Alarm-Benachrichtigungen senden",
+      "urlLabel": "Webhook-URL",
+      "urlHint": "Erstellen Sie einen Incoming Webhook in Slack oder einen Workflow in Teams und fügen Sie dessen URL hier ein.",
+      "formatLabel": "Format",
+      "format": {
+        "generic": "Generisches JSON",
+        "slack": "Slack",
+        "teams": "Microsoft Teams"
+      },
+      "save": "Änderungen speichern",
+      "saved": "Benachrichtigungseinstellungen gespeichert",
+      "test": "Testnachricht senden",
+      "testing": "Wird gesendet…",
+      "testUnsaved": "Speichern Sie Ihre Änderungen, bevor Sie einen Test senden.",
+      "testDisabled": "Aktivieren und speichern Sie die Benachrichtigungen, um einen Test zu senden.",
+      "testOk": "Testnachricht zugestellt (HTTP {{status}}).",
+      "testFailed": "Testnachricht fehlgeschlagen: {{error}}",
+      "testFailedStatus": "Testnachricht fehlgeschlagen (HTTP {{status}})."
+    },
+    "camera": {
+      "title": "Kamera-Anbindung",
+      "lead": "Konfigurieren Sie die Kamera oder Torsteuerung an der Einfahrt mit diesen Endpunkten.",
+      "checkInLabel": "Endpunkt Einfahrt",
+      "checkOutLabel": "Endpunkt Ausfahrt",
+      "apiKeyLabel": "API-Schlüssel",
+      "apiKeyHint": "Wird im Header X-API-Key gesendet. Der vollständige Schlüssel ist auf dem Server hinterlegt (GATE_API_KEY).",
+      "timezoneLabel": "Zeitzone",
+      "timezoneHint": "Bestimmt, an welchem Kalendertag eine Tagesbewilligung gilt."
+    },
+    "admins": {
+      "title": "Admins",
+      "lead": "Personen, die sich anmelden und den Parkplatz verwalten können.",
+      "add": "Admin hinzufügen",
+      "never": "Nie",
+      "remove": "Entfernen",
+      "cannotRemoveSelf": "Sie können sich nicht selbst entfernen.",
+      "removeDialog": {
+        "title": "{{name}} entfernen?",
+        "body": "{{email}} kann sich danach nicht mehr anmelden.",
+        "confirm": "Admin entfernen"
+      },
+      "removed": "{{name}} entfernt",
+      "addDialog": {
+        "title": "Admin hinzufügen",
+        "nameLabel": "Name",
+        "emailLabel": "E-Mail",
+        "passwordLabel": "Startpasswort",
+        "passwordHint": "Mindestens 10 Zeichen. Teilen Sie es auf sicherem Weg mit.",
+        "submit": "Admin hinzufügen"
+      },
+      "added": "{{name}} kann sich jetzt anmelden",
+      "duplicateEmail": "Es gibt bereits einen Admin mit dieser E-Mail-Adresse."
+    },
+    "account": {
+      "title": "Ihr Passwort",
+      "currentLabel": "Aktuelles Passwort",
+      "newLabel": "Neues Passwort",
+      "newHint": "Mindestens 10 Zeichen.",
+      "confirmLabel": "Neues Passwort wiederholen",
+      "submit": "Passwort ändern",
+      "success": "Passwort geändert",
+      "wrongCurrent": "Das aktuelle Passwort ist falsch."
+    }
+  },
+
+  "errors": {
+    "VALIDATION_ERROR": "Einige Angaben sind unvollständig. Bitte prüfen Sie die markierten Felder.",
+    "INVALID_PLATE": "Das ist kein gültiges Kontrollschild. Verwenden Sie 2 bis 12 Buchstaben und Ziffern.",
+    "UNAUTHORIZED": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    "INVALID_CREDENTIALS": "E-Mail oder Passwort ist falsch.",
+    "NOT_FOUND": "Dieser Eintrag existiert nicht mehr. Möglicherweise wurde er entfernt.",
+    "DUPLICATE_REQUEST": "Für dieses Kontrollschild wartet bereits ein Gesuch auf die Bewilligung.",
+    "ALREADY_PERMITTED": "Dieses Auto hat für diesen Zeitraum bereits eine gültige Bewilligung.",
+    "INVALID_STATE": "Dieser Eintrag wurde inzwischen geändert. Die Liste wurde aktualisiert.",
+    "DATE_IN_PAST": "Dieses Datum ist vorbei. Wählen Sie heute oder ein späteres Datum.",
+    "DATE_TOO_FAR": "Dieses Datum liegt zu weit in der Zukunft.",
+    "CANNOT_DELETE_SELF": "Sie können Ihr eigenes Konto nicht entfernen.",
+    "LAST_ADMIN": "Es braucht mindestens einen Admin. Fügen Sie zuerst einen weiteren Admin hinzu.",
+    "EMAIL_TAKEN": "Es gibt bereits einen Admin mit dieser E-Mail-Adresse.",
+    "RATE_LIMITED": "Zu viele Versuche. Bitte warten Sie eine Minute und versuchen Sie es erneut.",
+    "INTERNAL": "Auf dem Server ist ein Fehler aufgetreten. Versuchen Sie es gleich nochmals.",
+    "NETWORK": "Keine Verbindung zum Server. Prüfen Sie Ihre Netzwerkverbindung und versuchen Sie es erneut.",
+    "UNKNOWN": "Etwas Unerwartetes ist passiert. Versuchen Sie es erneut.",
+    "loadFailedTitle": "Daten konnten nicht geladen werden",
+    "loadFailedBody": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "notFoundPage": {
+      "title": "Seite nicht gefunden",
+      "body": "Diese Adresse gibt es nicht. Prüfen Sie den Link oder kehren Sie zur Startseite zurück.",
+      "action": "Zur Startseite"
+    }
+  },
+
+  "validation": {
+    "summary_one": "{{count}} Feld muss korrigiert werden.",
+    "summary_other": "{{count}} Felder müssen korrigiert werden.",
+    "plateRequired": "Geben Sie das Kontrollschild ein.",
+    "plateInvalid": "Verwenden Sie 2 bis 12 Buchstaben und Ziffern, z. B. ZH 123 456.",
+    "nameRequired": "Geben Sie einen Namen ein.",
+    "nameTooShort": "Geben Sie mindestens {{min}} Zeichen ein.",
+    "emailRequired": "Geben Sie eine E-Mail-Adresse ein.",
+    "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein, z. B. name@firma.ch.",
+    "dateRequired": "Wählen Sie ein Datum.",
+    "dateInPast": "Wählen Sie heute oder ein späteres Datum.",
+    "dateTooFar": "Wählen Sie ein Datum bis spätestens {{date}}.",
+    "tooLong": "Verwenden Sie höchstens {{max}} Zeichen.",
+    "passwordRequired": "Geben Sie das Passwort ein.",
+    "passwordTooShort": "Verwenden Sie mindestens {{min}} Zeichen.",
+    "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+    "urlRequired": "Geben Sie die Webhook-URL ein.",
+    "urlInvalid": "Geben Sie eine URL ein, die mit https:// oder http:// beginnt.",
+    "referenceRequired": "Geben Sie den Referenzcode ein.",
+    "gateTooLong": "Verwenden Sie höchstens {{max}} Zeichen."
+  }
+}

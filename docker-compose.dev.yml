@@ -1,0 +1,6 @@
+# Local development override: publishes Postgres to the host so `npm run dev` in api/ can reach it.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+services:
+  db:
+    ports:
+      - "${DB_PORT:-5432}:5432"

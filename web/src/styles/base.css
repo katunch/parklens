@@ -1,0 +1,232 @@
+/*
+ * Base styles (UX §8 "Base CSS the developer adds"). Semantic tokens only.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Focus Not Obscured: sticky top bar + alarm banner / bottom tab bar never cover focus */
+  scroll-padding-top: calc(var(--topbar-h) + 140px);
+  scroll-padding-bottom: calc(var(--tabbar-h) + var(--space-4));
+}
+
+@media (min-width: 960px) {
+  html {
+    scroll-padding-top: 140px;
+    scroll-padding-bottom: var(--space-4);
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+a {
+  color: var(--color-link);
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+/* Global focus: 2px outline at 2px offset (blue on light surfaces). */
+:focus-visible {
+  outline: var(--focus-w) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* Programmatically focused headings / main need no ring. */
+h1[tabindex='-1']:focus,
+h2[tabindex='-1']:focus,
+h3[tabindex='-1']:focus,
+main[tabindex='-1']:focus {
+  outline: none;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  left: var(--space-2);
+  top: var(--space-2);
+  z-index: var(--z-skiplink);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* ---- utilities ------------------------------------------------------------ */
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.text-sm {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.text-warning {
+  color: var(--color-warning-text);
+}
+
+.strong {
+  font-weight: var(--weight-semibold);
+}
+
+.strong-500 {
+  font-weight: var(--weight-medium);
+}
+
+.break {
+  overflow-wrap: anywhere;
+}
+
+.stack-xs {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.inline-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.link-danger {
+  color: var(--color-danger-text);
+  font-weight: var(--weight-semibold);
+}
+
+.link-danger:hover {
+  color: var(--color-danger-solid-active);
+}
+
+.quote {
+  white-space: pre-wrap;
+}
+
+/* ---- fresh paint (UX §4.4): hold 600 ms, then fade over --dur-highlight ---- */
+
+.is-fresh {
+  animation: fresh-paint calc(600ms + var(--dur-highlight)) linear;
+}
+
+@keyframes fresh-paint {
+  0%,
+  25% {
+    background-color: var(--color-highlight);
+  }
+  100% {
+    background-color: var(--fresh-to, transparent);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance));
+  }
+}
