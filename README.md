@@ -57,6 +57,25 @@ The design prototype is in [`docs/design/command-center.html`](docs/design/comma
 | `api` | `./api` (Node 24, Express, TypeScript) | REST API, SSE live stream, webhook dispatch, overstay job |
 | `db`  | `postgres:17-alpine` | Data, stored in the `db-data` volume |
 
+### Prebuilt images
+
+GitHub Actions ([`.github/workflows/docker.yml`](.github/workflows/docker.yml)) builds both images for
+`linux/amd64` and `linux/arm64` and publishes them to the GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/katunch/parklens-api:latest
+docker pull ghcr.io/katunch/parklens-web:latest
+```
+
+| Trigger | Tags |
+|---|---|
+| Push to `main` | `latest`, `main`, `sha-<commit>` |
+| Push a `vX.Y.Z` tag | `X.Y.Z`, `X.Y`, `sha-<commit>` |
+| Pull request | built to check it works, not pushed |
+
+The `web` image proxies `/api` to a host named `api`, so run the API container under that name (as in
+`docker-compose.yml`).
+
 ## Connecting the entrance camera / gate
 
 Both endpoints are reachable through the web container, so only one port needs to be opened.

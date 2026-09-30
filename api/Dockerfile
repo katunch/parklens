@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # ---- build: install all deps, compile TypeScript, drop dev deps -------------
-FROM node:24-alpine AS build
+# Runs on the build host's platform: the output (dist + production node_modules) is plain JS, so it can be
+# copied into an image of any target arch. Revisit this if a production dependency ever ships native code.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

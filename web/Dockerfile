@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ---- build: install deps, type-check and bundle with Vite ---------------------
-FROM node:24-alpine AS build
+# Runs on the build host's platform: the output is static files, so one build serves every target arch.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
