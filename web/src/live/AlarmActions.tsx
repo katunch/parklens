@@ -143,20 +143,18 @@ function ResolveForm({ alarm, onClose, onBusy, onDirty }: ResolveFormProps) {
 
   return (
     <form className="resolve-form" onSubmit={submit} noValidate>
-      <div className="resolve-summary">
-        <div className="resolve-summary__top">
-          <PlateChip plate={alarm.plate} size="md" srPrefix />
-          <AlarmTypeBadge type={alarm.type} />
-        </div>
-        <p className="resolve-summary__type">{t(`common.alarmTypeLong.${alarm.type}`)}</p>
-        <div className="resolve-summary__meta">
-          <time dateTime={alarm.occurredAt} title={fmt.dateTime(alarm.occurredAt)} className="tabular">
+      <div className="dialog__subject">
+        <PlateChip plate={alarm.plate} size="lg" state="denied" srPrefix />
+        <div className="dialog__subject-text">
+          <span className="inline-badges">
+            <AlarmTypeBadge type={alarm.type} />
+            {alarm.isStillParked && <StillParkedBadge />}
+          </span>
+          <span className="dialog__subject-type">{t(`common.alarmTypeLong.${alarm.type}`)}</span>
+          <time dateTime={alarm.occurredAt} title={fmt.dateTime(alarm.occurredAt)} className="dialog__subject-meta">
             {meta}
           </time>
-          {alarm.isStillParked && <StillParkedBadge />}
-          {alarm.previousAlarmCount > 0 && (
-            <span className="text-warning">{t('alarms.previous', { count: alarm.previousAlarmCount })}</span>
-          )}
+          {alarm.previousAlarmCount > 0 && <span className="text-warning text-sm">{t('alarms.previous', { count: alarm.previousAlarmCount })}</span>}
         </div>
       </div>
 

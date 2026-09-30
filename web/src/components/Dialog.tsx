@@ -9,7 +9,7 @@ interface DialogProps {
   title: ReactNode;
   /** Lead text under the title; wired to aria-describedby. */
   description?: ReactNode;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'drawer';
   children?: ReactNode;
   footer?: ReactNode;
   /** While submitting, Esc / close / backdrop are blocked. */

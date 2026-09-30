@@ -10,7 +10,7 @@ export function localeFor(lang: string): 'en-GB' | 'de-CH' {
   return lang.startsWith('de') ? 'de-CH' : 'en-GB';
 }
 
-type DateStyle = 'dateTime' | 'date' | 'dateWeekday' | 'time' | 'timeSeconds';
+type DateStyle = 'dateTime' | 'date' | 'dateWeekday' | 'dateLong' | 'time' | 'timeSeconds';
 
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
@@ -27,6 +27,8 @@ function dateOptions(locale: string, style: DateStyle): Intl.DateTimeFormatOptio
       return day;
     case 'dateWeekday':
       return { ...day, weekday: 'short' };
+    case 'dateLong':
+      return { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
     case 'time':
       return time;
     case 'timeSeconds':

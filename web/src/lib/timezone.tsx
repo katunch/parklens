@@ -37,6 +37,8 @@ export function useFmt() {
       dateTime: (iso: string) => formatInstant(iso, 'dateTime', locale, tz),
       date: (iso: string) => formatInstant(iso, 'date', locale, tz),
       dateWeekday: (iso: string) => formatInstant(iso, 'dateWeekday', locale, tz),
+      /** "Wednesday, 30 September 2026" (command center sub-line). */
+      dateLong: (iso: string) => formatInstant(iso, 'dateLong', locale, tz),
       time: (iso: string) => formatInstant(iso, 'time', locale, tz),
       timeSeconds: (iso: string) => formatInstant(iso, 'timeSeconds', locale, tz),
       /** A `YYYY-MM-DD` calendar date. */
@@ -54,8 +56,12 @@ export function useFmt() {
         const p = durationParts(minutes);
         return t(`common.duration.${p.key}`, p as unknown as Record<string, unknown>);
       },
-      relative: (iso: string, now: Date) => {
+      relative: (iso: string, now: Date, compact = false) => {
         const p = relativeParts(iso, now, locale, tz);
+        // Compact (tight meta lines): same-day instants show just the clock time.
+        if (compact && (p.kind === 'justNow' || p.kind === 'minutes' || p.kind === 'today')) {
+          return p.kind === 'today' ? p.time : formatInstant(iso, 'time', locale, tz);
+        }
         switch (p.kind) {
           case 'justNow':
             return t('common.time.justNow');

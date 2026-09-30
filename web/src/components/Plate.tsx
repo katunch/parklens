@@ -1,7 +1,11 @@
-import type { ChangeEvent, KeyboardEvent, Ref } from 'react';
+import type { ChangeEvent, KeyboardEvent, ReactNode, Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cx } from '../lib/cx';
-import { formatPlate } from '../lib/plate';
+import { formatPlate, normalizePlate } from '../lib/plate';
+
+const SWISS_RE = /^[A-ZÄÖÜ]{2}\d{1,6}$/;
+
+export type PlateState = 'scanning' | 'allowed' | 'denied' | 'muted';
 
 interface PlateChipProps {
   /** Normalized plate (formatted with formatPlate). */
@@ -13,16 +17,56 @@ interface PlateChipProps {
   srPrefix?: boolean;
   title?: string;
   className?: string;
+  state?: PlateState;
+  /** Renders an interactive `<button>` chip (hover/focus lock-on reticle). */
+  onClick?: () => void;
+  ariaLabel?: string;
+  /** Overlay content (scan beam). */
+  children?: ReactNode;
+  /** Override the rendered characters (scan decode). */
+  text?: string;
+  ref?: Ref<HTMLElement>;
 }
 
-/** Swiss-style number plate: the signature element (UX §6 PlateChip). Never truncated. */
-export function PlateChip({ plate, display, size = 'md', srPrefix, title, className }: PlateChipProps) {
+/**
+ * Swiss-style number plate — the signature element (UX §6 PlateChip): shield at md+, lock-on reticle,
+ * verdict states. Always light, never truncated, `translate="no"`.
+ */
+export function PlateChip({ plate, display, size = 'md', srPrefix, title, className, state, onClick, ariaLabel, children, text, ref }: PlateChipProps) {
   const { t } = useTranslation();
-  const text = display && display.trim() ? display : formatPlate(plate ?? '');
-  return (
-    <span className={cx('plate', `plate--${size}`, className)} translate="no" title={title}>
+  const shown = display && display.trim() ? display : formatPlate(plate ?? '');
+  const swiss = SWISS_RE.test(normalizePlate(shown));
+  const classes = cx('plate', size !== 'md' && `plate--${size}`, state && `plate--${state}`, onClick && 'plate--interactive', className);
+  const inner = (
+    <>
       {srPrefix && <span className="sr-only">{t('common.fields.plate')} </span>}
-      {text}
+      <span className="plate__txt">{text ?? shown}</span>
+      <i className="reticle" aria-hidden="true" />
+      {children}
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        ref={ref as Ref<HTMLButtonElement>}
+        type="button"
+        className={classes}
+        data-ch={swiss ? '' : undefined}
+        translate="no"
+        title={title}
+        aria-label={ariaLabel}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <span ref={ref as Ref<HTMLSpanElement>} className={classes} data-ch={swiss ? '' : undefined} translate="no" title={title}>
+      {inner}
     </span>
   );
 }
@@ -41,7 +85,7 @@ interface PlateInputProps {
   'aria-invalid'?: true;
 }
 
-/** Text input styled as a plate; uppercases as typed (keeps the caret), stores the typed form. */
+/** Text input styled as a plate with shield and focus reticle; uppercases as typed (keeps the caret). */
 export function PlateInput({ id, value, onChange, onBlur, onEnter, size = 'lg', invalid, required, ref, ...aria }: PlateInputProps) {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const el = e.target;
@@ -60,25 +104,28 @@ export function PlateInput({ id, value, onChange, onBlur, onEnter, size = 'lg', 
     }
   };
   return (
-    <input
-      ref={ref}
-      id={id}
-      className={cx('plate-input', `plate-input--${size}`, invalid && 'is-invalid')}
-      type="text"
-      inputMode="text"
-      value={value}
-      onChange={handleChange}
-      onBlur={onBlur}
-      onKeyDown={handleKeyDown}
-      placeholder="ZH 123 456"
-      autoComplete="off"
-      autoCapitalize="characters"
-      autoCorrect="off"
-      spellCheck={false}
-      maxLength={20}
-      required={required}
-      translate="no"
-      {...aria}
-    />
+    <div className={cx('plate-input', `plate-input--${size}`, invalid && 'plate-input--error')}>
+      <input
+        ref={ref}
+        id={id}
+        className="plate-input__field"
+        type="text"
+        inputMode="text"
+        value={value}
+        onChange={handleChange}
+        onBlur={onBlur}
+        onKeyDown={handleKeyDown}
+        placeholder="ZH 123 456"
+        autoComplete="off"
+        autoCapitalize="characters"
+        autoCorrect="off"
+        spellCheck={false}
+        maxLength={20}
+        required={required}
+        translate="no"
+        {...aria}
+      />
+      <i className="reticle" aria-hidden="true" />
+    </div>
   );
 }

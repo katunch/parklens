@@ -1,72 +1,131 @@
-# ParkLens: UX Specification (MVP)
+# ParkLens: UX Specification (v2, command center)
 
 Companion to `ARCHITECTURE.md`, which defines the API. This document never changes the API.
 Tokens: `web/src/styles/tokens.css`. Copy: `web/src/i18n/locales/{en,de}.json`. Keys are written as
 `namespace.key` (e.g. `alarms.banner.resolve`). Components must use **semantic tokens**
-(`--color-*`, `--text-*`, `--space-*`, …), never hex values or the `--c-*` primitives.
+(`--color-*`, `--glass-*`, `--glow-*`, `--chart-*`, `--plate-*`, `--cc-*`, `--text-*`, `--space-*`, …), never hex values or the `--c-*` primitives.
+
+**v2** keeps every v1 flow, state, a11y rule, i18n key contract and error mapping. It replaces the visual
+language (§1, §6), turns the dashboard into the **Command center** (§5.6), and adds the alarm takeover
+(§4.6), command palette (§9), plate dossier (§10), wall mode (§11), autopilot (§12) and an effects
+catalogue (§13). §14 lists what was removed or renamed.
+
+**Visual target:** `docs/design/command-center.html`. It's self-contained, so open it in a browser. Hash
+switches: `#still` (no autopilot), `#alarm` (fires a takeover), `#wall`, `#palette=zh` (combine with `&`).
+The "Component kit" section at the bottom shows every restyled core component.
 
 ---
 
-## 1. Design direction
+## 1. Design direction (v2)
 
-**Signal blue on asphalt.** ParkLens takes its visual language from the car park itself: the blue
-Swiss "P" sign, asphalt, yellow road markings and, most of all, the number plate. It should feel like
-a calm, well-signposted car park. Surfaces are quiet, signs are clear, and red appears only when
-something needs attention.
+**Daylight command center.** Think of a control tower in daylight: a bright blueprint room. The parking
+lot is drawn as a plan, cameras lock on to number plates, and exactly one screen is dark: the camera
+monitor. The room is calm by default, and red appears only when a car without a permit is on the lot.
 
-- **Tone:** calm, factual, operational. Plain verbs, sentence case, no exclamation marks, no marketing copy.
-- **Personality lives in three places only:**
-  1. **PlateChip**: every plate appears as a small Swiss-style number plate (white field, black
-     characters, inset rim). This is the signature element, and it makes lists quick to scan.
-  2. **Asphalt shell**: the admin navigation is dark asphalt, with a road-marking-yellow lane line
-     next to the active page.
-  3. **Fresh paint**: rows that arrive live get a pale marking-yellow wash that fades out.
-- **Everything else stays quiet:** white panels with 1px borders and no drop shadows, one blue for all
-  actions, left-aligned layouts. Only floating layers (dialogs, toasts, the alarm banner) get shadows.
-- **Light theme only** for the MVP (`color-scheme: light`). Because every colour comes from semantic
-  tokens, a dark theme can be added later by overriding tokens alone.
+**Principles**
+1. **Light first; dark is an accent.** Dark surfaces are limited to the command strip, the gate scanner
+   instrument, tooltips and the parking-guidance plaque, about 15–20% of the command center and less
+   elsewhere. Pages, panels, forms and tables stay light.
+2. **One motif: the lock-on reticle.** ANPR corner brackets appear:
+   - on a plate while it is scanned, focused or hovered;
+   - around lot tiles on hover and focus;
+   - as the viewfinder of the scanner;
+   - as static registration marks on instrument corners.
+
+   The reticle replaces v1's yellow lane marker as the ownable element.
+3. **Motion reports data.** Every animation corresponds to a real event: a car scanned, a tile arriving,
+   a number changing, an alarm. Ambient motion (light fields, radar) is slow and quiet. Nothing loops
+   fast except the scan beam while it scans.
+4. **Glass is structure.** Instruments are frosted glass panels over a blueprint grid, with hairline
+   borders and an inner top highlight. Content-heavy surfaces (tables, forms, dialogs) use near-opaque
+   glass so text never sits on busy backgrounds.
+5. **The Swiss plate stays the signature.** It now has a small Swiss shield, sits inside a reticle
+   when it matters, and glows green or red on a verdict (§6 PlateChip).
+
+**Core palette** (full scales in `tokens.css`)
+
+| Name | Hex | Role |
+|---|---|---|
+| Paper | `#F3F6FA` | Page background under the blueprint grid |
+| Ink | `#101C2E` | Text; plate characters use `#0A1322` |
+| Signal blue | `#1F56E6` | Actions, links, focus, brand (Swiss "P" sign) |
+| Scan cyan | `#06AFD4` | Live data: scan beam, radar, occupancy line, live ping |
+| Night | `#0D1829` | Dark accent surfaces only |
+| Status | green `#0A7F4F`, amber `#B86500`, red `#D92D20` | See §1.1 |
 
 ### 1.1 Colour meaning (strict)
 
 | Colour | Means | Never used for |
 |---|---|---|
-| Red (danger) | Car on the lot without a valid permit (open alarm, unauthorized entry), destructive actions, errors | Decoration, rejected requests |
-| Amber (warning) | Waiting for a decision (pending), needs checking (date passed, notification failed) | Alarms |
-| Green (success) | Valid permit, authorized entry, approved | – |
-| Grey (neutral) | Closed history: rejected, revoked, resolved, check-out | – |
-| Blue (primary/info) | Actions, links, focus on light surfaces, brand, info hints | Status |
-| Yellow (marking) | Active nav marker, focus ring on asphalt, fresh-paint highlight | Text on light surfaces, status |
-
-Rejected and revoked are grey on purpose, so that red always means "act now".
+| Red (danger) | Car on the lot without a valid permit (open alarm, unauthorized entry), destructive actions, errors, the alarm takeover | Decoration, rejected requests |
+| Amber (warning) | Waiting for a decision (pending), needs checking (date passed, notification failed, silent gate) | Alarms |
+| Green (success) | Valid permit, allowed entry, approved, "all clear" | – |
+| Grey (neutral) | Closed history: rejected, revoked, resolved, check-out, idle gate | – |
+| Blue (primary/info) | Actions, links, focus on light surfaces, brand, permanent-permit vehicles | Status |
+| Cyan (live) | Live data and motion: scan beam, radar, occupancy line, live ping, day-permit vehicles, autopilot, focus ring on dark | Text on light surfaces (use `--color-live-text`) |
+| Night (dark) | Accent surfaces listed in principle 1 | Page or panel backgrounds, forms |
 
 ### 1.2 Typography
 
-**Barlow** for UI text, **Barlow Semi Condensed** for headings, KPI values and plates. Both belong to
-one superfamily modelled on highway signs and number plates, which suits the subject. The
-semi-condensed width also keeps plates and numbers compact in tables.
+Exactly two faces, each in one weight:
 
-- Self-host with Fontsource (no Google CDN, which suits nDSG/GDPR and LAN-only installs):
-  `npm i @fontsource/barlow @fontsource/barlow-semi-condensed`, then import weights 400/500/600
-  (Barlow) and 500/600/700 (Semi Condensed) in `main.tsx`. The exact import list is in the header of
-  `tokens.css`.
-- `--font-mono` (system stack) is only for text people copy or type: reference codes, URLs, the API key hint.
+- **Space Grotesk 700** ("SG 700" below): headings, numbers and KPIs, plates, labels, buttons, nav, badges, readouts, table headers, reference codes.
+- **Inter 400**: body text, descriptions, hints, inputs, table cells, toasts' body text.
 
-| Role | Font token | Size token | Weight / notes |
+No other weights or families exist. The one exception is `--font-mono` (system monospace), used only for
+the API key hint and endpoint URLs in Settings.
+
+- Load them self-hosted: `npm i @fontsource/space-grotesk @fontsource/inter`, then remove both
+  `@fontsource/barlow*` packages. In `main.tsx`, import `@fontsource/space-grotesk/700.css` and
+  `@fontsource/inter/400.css`. `tokens.css` sets `font-synthesis: none`, so the browser never fakes a weight.
+- **Rule of thumb when porting v1 CSS:** anything that was weight 500/600 or used `--font-display` becomes
+  `font: var(--weight-bold) … var(--font-display)`. Anything else is `var(--weight-regular) … var(--font-sans)`.
+  Never put 700 on Inter. The v1 aliases `--weight-medium` and `--weight-semibold` exist only to keep
+  the old CSS rendering during migration.
+
+| Role | Face | Size token | Notes |
 |---|---|---|---|
-| Public h1 | `--font-display` | `--text-3xl` (`--text-2xl` < 720px) | 600, `--tracking-tight` |
-| Admin page h1 | display | `--text-2xl` (`--text-xl` < 720px) | 600, `--tracking-tight` |
-| Panel title (h2) | display | `--text-md` | 600 |
-| Dialog title (h2) | display | `--text-lg` | 600 |
-| Public body, inputs | `--font-sans` | `--text-base` (16px, prevents iOS zoom) | 400 |
-| Admin body, table cells | sans | `--text-ui` | 400 |
-| Field labels | sans | `--text-sm` | 600 |
-| Hints, meta | sans | `--text-sm` | 400, `--color-text-muted` |
-| Buttons | sans | sm: `--text-sm`, md: `--text-ui`, lg: `--text-base` | 600 |
-| KPI value | display | `--text-3xl` | 600, tabular numerals |
-| Badges | sans | `--text-xs` | 600 |
+| Public h1 | SG 700 | `--text-3xl` (`--text-xl` < 720px) | `--tracking-tight` |
+| Admin page h1 | SG 700 | `--text-2xl` (`--text-xl` < 720px) | `--tracking-tight` |
+| Panel / instrument title (h2) | SG 700 | `--text-md` | −0.01em |
+| Dialog title | SG 700 | `--text-lg` | |
+| KPI value | SG 700 | `--cc-kpi-value` (40px; 72px in wall mode) | tabular numerals |
+| Gauge value | SG 700 | `--cc-gauge-value` (56px; 96px in wall mode) | tabular numerals |
+| Labels, buttons, nav, table headers | SG 700 | `--text-sm` / `--text-ui` | |
+| Badges, axis labels | SG 700 | `--text-xs` | |
+| Readouts | SG 700 | `--text-2xs` | UPPERCASE with `--tracking-readout`, the **only** uppercase text: `LIVE`, `AUTOPILOT ON`, `N OPEN ALARMS`, `SYSTEM OK`, gate states, scanner HUD, `ALLOWED` / `DENIED` / `CHECKED OUT`. Uppercase comes from CSS `text-transform`; copy stays sentence case in the JSON. |
+| Body (admin) / cells | Inter 400 | `--text-ui` | |
+| Body (public), inputs | Inter 400 | `--text-base` | 16px avoids iOS zoom |
+| Hints, meta, captions | Inter 400 | `--text-sm` / `--text-xs` | `--color-text-muted` / `-subtle` |
 
-Rules: sentence case everywhere and no ALL-CAPS labels. Apply `font-variant-numeric: tabular-nums` to
-times, durations, counts and KPI values. Limit prose to `--measure`.
+Other rules:
+- Tabular numerals for times, durations, counts and plates.
+- Prose is limited to `--measure`.
+- No ALL-CAPS headings or eyebrow labels.
+- No arrows appended to link text.
+
+### 1.3 Surfaces and depth
+
+- **Page:** `--color-bg` with the ambient layer: two drifting light fields plus the blueprint grid
+  (`--bg-grid-*`, masked to fade towards the bottom). It is fixed behind the content and never scrolls.
+- **Instrument panel:** `--glass-bg` + `--glass-filter` + a 1px `--glass-border` + `--shadow-panel`
+  (inner top highlight plus a soft blue ambient shadow), `--radius-lg`. Instruments on the command
+  center also carry registration marks (9px L-ticks, 8px inset, `--reg-mark`) and the cursor spotlight (§13).
+- **Content panel** (tables, forms, settings): the same glass without registration marks or spotlight.
+- **Floating layers** (palette, dialogs, drawer, toasts): `--glass-bg-strong`, `--radius-xl`, `--shadow-lg`.
+- **Dark accent surfaces** use the `--color-dark-*` tokens. Their text, focus (cyan) and glows come from
+  the dark set only.
+- **Radius hierarchy:** 4 (small plate, kbd) < 6 (badges, tooltips) < 10 (controls) < 16 (panels) < 22 (floating layers).
+
+### 1.4 Public pages: the calm dose
+
+Landing, request, status and login use the same language at lower intensity:
+- The light-field layer gets `opacity: var(--bg-public-dose)` (0.6). There is no radar, spotlight or command strip.
+- Forms sit on one near-opaque glass panel.
+- The PlateInput shows the lock-on reticle on focus.
+- The success and status panels get a single soft glow in their tone.
+- One entrance per page: the main panel fades and rises by `--motion-distance` over `--dur-enter`.
+- The public header is a thin light-glass bar (logo + language switcher). The footer stays as in v1.
 
 ---
 
@@ -104,7 +163,7 @@ times, durations, counts and KPI values. Limit prose to `--measure`.
   as UTC midnight. Any other method can shift it by a day.
 - **Today** (for date `min`/`max` and the public "expired" check) is
   `Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date())`, which returns `YYYY-MM-DD`.
-- **Relative time** (`<RelativeTime>`) is used in live feeds: dashboard panels, alarm list, request
+- **Relative time** (`<RelativeTime>`) is used in live feeds: command-center instruments, alarm list, request
   queue, gate log.
   - Under 45 s: `common.time.justNow`
   - Under 60 min: `Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })`, giving "5 min ago" / "vor 5 Min."
@@ -153,7 +212,7 @@ Field mapping:
 | `DATE_IN_PAST`, `DATE_TOO_FAR` | Date field |
 | `ALREADY_PERMITTED` | Plate field (admin); form-level `request.errors.alreadyPermitted` (public) |
 | `DUPLICATE_REQUEST` | Form-level `request.errors.duplicate` + link `request.errors.duplicateAction` → `/request/status` |
-| `409` on `POST /api/admins` | Email field, `settings.admins.duplicateEmail` |
+| `EMAIL_TAKEN` (409) on `POST /api/admins` | Email field, `settings.admins.duplicateEmail` |
 | `INVALID_STATE` on approve/reject/revoke/resolve | Toast, then refetch the list |
 | `RATE_LIMITED` on the public request form | `request.errors.rateLimited` |
 
@@ -210,115 +269,120 @@ URL state keeps views shareable and makes the back button work.
 | `/request/status` | – |
 | `/request/:token` | – |
 | `/login` | `from`, `expired=1` |
-| `/admin` | – |
+| `/admin` | `wall=1` (wall mode, §11) |
 | `/admin/alarms` | `status=open\|resolved\|all` (default `open`), `plate`, `focus=<alarmId>`, `page` |
 | `/admin/requests` | `tab=pending\|all` (default `pending`), `page` |
 | `/admin/permits` | `q`, `status`, `type`, `activeToday=true`, `page` |
 | `/admin/activity` | `tab=parked\|log` (default `parked`), `plate`, `direction`, `authorized`, `page` |
-| `/admin/simulator`, `/admin/settings` | – |
+| `/admin/simulator` | `plate` (prefill, e.g. from the palette) |
+| `/admin/settings` | – |
+| any admin route | `dossier=<normalized plate>` opens the PlateDossier (§10) |
 | any unknown route | Not-found page (`errors.notFoundPage.*`) |
 
 ### 3.2 Public shell
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ [P] ParkLens                                                EN | DE  │  header, 64px, surface, 1px bottom border
+│ [P] ParkLens                                                EN | DE  │  header 64px, light glass bar, hairline bottom
 ├──────────────────────────────────────────────────────────────────────┤
-│        ┌──────────────── max 560px, left-aligned text ──────────┐    │  page: --color-bg
-│        │  page content                                          │    │
+│        ┌──────────────── max 560px, left-aligned text ──────────┐    │  page: --color-bg + ambient (calm dose, §1.4)
+│        │  page content (forms on one glass panel)               │    │
 │        └────────────────────────────────────────────────────────┘    │
 │        Admin login                                                   │  footer link, sm, muted
 └──────────────────────────────────────────────────────────────────────┘
 ```
-- **Logo mark:** a 28px square with 6px radius, `--color-logo-bg`, and a white "P" in display 700 at
-  18px. The wordmark "ParkLens" is display 600 at `--text-md`. Reuse the same "P" square as the SVG favicon.
+- **Logo mark:** a 26px square with 7px radius, a `--c-blue-500 → --color-logo-bg` gradient and a white
+  "P" in SG 700 at 16px. It gets a soft blue glow only inside the dark command strip. The wordmark
+  "ParkLens" is SG 700 at `--text-ui`/`--text-md`. Reuse the same "P" square as the SVG favicon.
 - **Language switcher:** a compact SegmentedControl on the right of the header.
-- **Footer:** the link `public.adminLogin` → `/login`. It is hidden on `/login` itself.
+- **Footer:** the link `public.adminLogin` → `/login`, hidden on `/login` itself.
 
 ### 3.3 Admin shell, desktop (≥ 960px)
 
+The shell has three layers: the dark **command strip** (global, sticky, `--strip-h`), a **light glass
+sidebar** (nav only), and the content area over the ambient background.
+
 ```
-┌─ 248px asphalt ─────┬──────────────────────────────────────────────────────────────┐
-│ [P] ParkLens        │ ┌ AlarmBanner (sticky, only when needed, §4.2) ─────────────┐ │
-│                     │ └───────────────────────────────────────────────────────────┘ │
-│▌ Dashboard          │  Dashboard                                   [page action]   │
-│  Alarms         (1) │  Today, Tue 29 Sep 2026                                       │
-│  Requests       (2) │                                                               │
-│  Permits            │  … content, max 1280px, padding --page-pad-x/y                │
-│  Activity           │                                                               │
-│  Gate simulator     │                                                               │
-│  Settings           │                                                               │
-│                     │                                                               │
-│ ─────────────────── │                                                               │
-│ ● Live              │                                                               │
-│ Alarm sound   [o ]  │                                                               │
-│ [ EN | DE ]         │                                                               │
-│ Parking Admin       │                                                               │
-│ admin@parklens.local│                                                               │
-│ [Log out]           │                                                               │
-└─────────────────────┴──────────────────────────────────────────────────────────────┘
+┌ command strip (dark, 44px, sticky, z strip) ───────────────────────────────────────────────────────────────────┐
+│ [P] ParkLens │ ●LIVE  [⚠ 1 OPEN ALARM]  [➤ AUTOPILOT ON]  ●SYSTEM OK  2 GATES ACTIVE   [⌕ Search plates, pages, actions ⌘K]  14:32:07 Zurich  (snd)  EN|DE  (wall)  (PA) │
+├──────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────┤
+│ sidebar 232px        │ ┌ AlarmBanner (sticky under the strip, only when needed, §4.2) ─────────────────────┐   │
+│ light glass          │ └───────────────────────────────────────────────────────────────────────────────────┘   │
+│ ▍Command center      │  Command center                                           [page actions]                 │
+│  Alarms          (1) │  Wednesday, 30 September 2026                                                           │
+│  Requests        (2) │                                                                                         │
+│  Permits             │  … content, max --content-max, padding --page-pad-x/y                                    │
+│  Activity            │                                                                                         │
+│  Gate simulator   ●  │  (● = autopilot running)                                                                 │
+│  Settings            │                                                                                         │
+│ ┌ Lot  23 / 40 ────┐ │                                                                                         │
+│ │ ████████████▌░░░ │ │                                                                                         │
+│ └──────────────────┘ │                                                                                         │
+└──────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Item | lucide icon | Label key | Route | Badge |
-|---|---|---|---|---|
-| Dashboard | `LayoutDashboard` | `nav.dashboard` | `/admin` | – |
-| Alarms | `Siren` | `nav.alarms` | `/admin/alarms` | Danger CountBadge = `summary.openAlarms` |
-| Requests | `Inbox` | `nav.requests` | `/admin/requests` | Warning CountBadge = `summary.pendingRequests` |
-| Permits | `BadgeCheck` | `nav.permits` | `/admin/permits` | – |
-| Activity | `ArrowRightLeft` | `nav.activity` | `/admin/activity` | – |
-| Gate simulator | `ScanLine` | `nav.simulator` | `/admin/simulator` | – |
-| Settings | `Settings` | `nav.settings` | `/admin/settings` | – |
+**Command strip** (component spec in §6 CommandStrip). Left to right:
+
+| Slot | Content | Behaviour |
+|---|---|---|
+| Brand | Logo mark + "ParkLens" | Link to `/admin` |
+| LIVE readout | Green dot (ping) + `nav.live.connected` | Amber + `nav.live.connecting` / `nav.live.reconnecting` when SSE is down (§4.1) |
+| Alarm chip | `Siren` + `nav.openAlarms_*` | Only while `summary.openAlarms > 0`. Red glass chip. Links to `/admin/alarms?status=open`. Bumps on `alarm.created`. |
+| Autopilot chip | `Navigation` icon + `strip.autopilot` | Only while autopilot runs (§12). Animated cyan stripes. Opens the autopilot popover. |
+| System readout | Dot + `strip.system.*` | From `GET /api/health` (refetch every 60 s): `ok` / `degraded` (db not ok) / `offline` (request failed) |
+| Gates readout | `strip.gatesActive_*` | Gates with an event in the last 10 min, from `GET /api/dashboard/gates`. Hidden < 1500px. |
+| Search | Button styled as a field: `strip.search` + `⌘K` hint | Opens the command palette (§9). Shows `Ctrl K` on non-Apple platforms. |
+| Clock | `HH:mm:ss` in the app timezone + place name (`timezone` after the last `/`, `_` → space) | Ticks each second, aligned to the second. `aria-label` `strip.clockLabel`. Place hidden < 1500px. |
+| Sound | Icon button `Volume2` / `VolumeX`, `aria-pressed`, `nav.sound.label` | Replaces the v1 sidebar switch (§4.3) |
+| Language | Dark compact SegmentedControl EN/DE | |
+| Wall mode | Icon button `Maximize` (`strip.wallEnter`). In wall mode, a labelled button `strip.wallExit`. | §11 |
+| Account | Avatar with initials. Menu: "Signed in as {name}", email, Change password (→ Settings), Log out. | Replaces the v1 sidebar footer |
 
 **Sidebar:**
-- Fixed full height with `--color-nav-bg`. The logo block is 64px tall.
-- Nav items are 40px tall with 12px side padding, a 20px icon and a `--text-ui` label (weight 500) in `--color-nav-text`.
-- Hover uses `--color-nav-hover-bg`.
-- The active item gets `aria-current="page"`, `--color-nav-active-bg`, white text, and a **3px
-  `--color-nav-marker` bar** on its left edge at full item height (the lane line).
-- CountBadges are right-aligned and hidden when the count is 0. The link's accessible name includes
-  the count, e.g. "Alarms, 1 open alarm" (`nav.openAlarms_*`).
+- Light glass (`--color-nav-bg` + `--glass-filter`, 1px `--color-nav-border`), sticky below the strip.
+- Nav items: 40px, SG 700 `--text-ui`, 18px icon, `--color-nav-text`; hover `--color-nav-hover-bg`.
+- Active item: `aria-current="page"`, `--color-nav-active-bg`, `--color-nav-text-active`, and a 3px
+  `--color-nav-marker` bar with `--glow-marker` on its left edge.
+- CountBadges as in v1.
+- The Gate simulator item shows a 7px cyan dot while autopilot runs.
+- **Bottom: lot meter.** "Lot", `{parked} / {capacity}` (SG 700) and a 6px bar with authorized (blue)
+  and unauthorized (red) segments, from `summary`. It links to `/admin`.
 
-**Sidebar footer** (1px `--color-nav-border` on top, 16px padding), from top to bottom:
-- LiveIndicator (§4.1)
-- Alarm sound Switch (`nav.sound.label`)
-- LanguageSwitcher (dark variant)
-- Signed-in admin: name in white 600, email in `--text-sm` `--color-nav-text-muted`, truncated with an ellipsis
-- Logout button (`nav` variant, `DoorOpen` icon, `nav.logout`)
+The v1 sidebar footer (live indicator, sound switch, language, user, logout) is gone. Those controls
+now live in the strip.
 
-**Content:**
-- `<main id="content">`, left-aligned, max `--content-max`.
-- Page header: h1 on the left and page actions on the right. An optional sub-line below uses `--text-sm` muted.
-- Skip link `nav.skipToContent` is the first focusable element.
+**Content:** unchanged from v1 (skip link, `main#content`, page header), except that the command
+center uses the full `--content-max` width.
 
 ### 3.4 Admin shell, mobile and tablet portrait (< 960px)
 
 ```
 ┌──────────────────────────────────────────────┐
-│ [P]  Alarms                  ●  [Siren 1]    │  top bar 56px, asphalt, sticky
+│ [P] ●LIVE [⚠ 1 OPEN ALARM] [➤]      (⌕) (PA) │  top bar = the command strip, 52px, dark, sticky
 ├──────────────────────────────────────────────┤
 │ ┌ AlarmBanner ─────────────────────────────┐ │
 │ └──────────────────────────────────────────┘ │
 │  content (padding 16px)                      │
-│                                              │
 ├──────────────────────────────────────────────┤
-│ Dashboard  Alarms(1)  Requests(2) Permits More│  tab bar 64px + safe-area, white
+│ Center  Alarms(1)  Requests(2)  Permits  More│  tab bar 64px + safe area, light glass
 └──────────────────────────────────────────────┘
 ```
 - **Top bar:**
-  - Logo mark (→ `/admin`).
-  - Current page title in display 600 `--text-md`, white, truncated.
-  - LiveIndicator: dot only, with `aria-label` giving the state.
-  - Alarm button: a `Siren` icon plus a danger CountBadge, linking to `/admin/alarms`.
-- **Bottom tab bar:**
-  - Items: Dashboard, Alarms, Requests, Permits, More. Each has a 22px icon and an `--text-xs` label.
-  - The active item uses `--color-tabbar-text-active` and weight 600, with `aria-current`.
-  - Use `padding-bottom: env(safe-area-inset-bottom)`.
-- **More** (`Ellipsis` icon) opens a bottom sheet (Dialog sheet variant) containing:
-  - Links: Activity, Gate simulator, Settings (same icons as the sidebar)
-  - Alarm sound switch
-  - LanguageSwitcher
-  - "Signed in as"
-  - Log out
+  - Brand is the logo mark only below 720px; the wordmark shows at 720–959px.
+  - LIVE readout.
+  - Alarm chip (count only, below 480px).
+  - Autopilot chip, icon only.
+  - Search icon button (opens the palette full-screen as a sheet).
+  - Avatar menu.
+  - System/gates readouts, clock, sound, language and wall mode move into the **More** sheet. Wall mode
+    is not offered below 960px.
+- **Bottom tab bar:** as in v1, restyled as light glass. The first tab is labelled
+  `nav.dashboardShort` ("Center" / "Leitstand"). The active tab uses `--color-tabbar-text-active`.
+- **More sheet:**
+  - Links: Activity, Gate simulator, Settings.
+  - Alarm sound, language.
+  - "Signed in as", log out.
+  - System status line.
 - **Content** bottom padding is `--tabbar-h` + 16px + the safe-area inset.
 
 ### 3.5 Auth flow
@@ -339,76 +403,85 @@ URL state keeps views shareable and makes the back button work.
 - **Connection:** `new EventSource('/api/stream?token=…')`.
 - **States:** `connecting` → `live`. On error the state becomes `reconnecting`. EventSource retries on
   its own. After 3 consecutive errors, close it and recreate it with a 2 / 5 / 10 / 30 s backoff.
-- **LiveIndicator:**
-  - `live`: an 8px `--color-success-solid` dot with `nav.live.connected`.
-  - Otherwise: an amber dot with `nav.live.connecting` / `nav.live.reconnecting`, plus
-    `nav.live.hintDisconnected` in a tooltip and the `aria-describedby`.
+- **LIVE readout (strip):**
+  - `live`: green dot with ping, `nav.live.connected`.
+  - Otherwise: static amber dot with `nav.live.connecting` / `nav.live.reconnecting`, plus
+    `nav.live.hintDisconnected` as a tooltip and `aria-describedby`.
+  - While not live, the Gate feed instrument also dims its stage and shows the same hint.
 - **After reconnecting**, invalidate every admin query.
-- **Safety net:** the `summary` and `alarms` queries refetch every 60 s.
+- **Safety net:** `summary`, `timeline`, `gates` and `alarms` refetch every 60 s. Clocks, durations and
+  "last event" ages tick locally.
 
 | Event | Invalidate query keys | UI effect |
 |---|---|---|
-| `alarm.created` | `summary`, `alarms`, `sessions`, `gate-events` | Banner (§4.2), announcement + sound (§4.3), fresh-paint row, document title |
-| `alarm.updated` | `summary`, `alarms`, `sessions` | If `resolved`, remove its banner. Webhook status changes update silently. |
-| `gate.event` | `gate-events`, `sessions`, `summary` | Fresh-paint row in visible lists |
-| `permit.changed` | `permits`, `summary`, `sessions` | Lists update, no extra UI |
-| `request.created` | `permits`, `summary` | Info toast `requests.newRequestToast` with action `requests.review` → `/admin/requests` (suppressed on that page) |
+| `alarm.created` | `summary`, `alarms`, `sessions`, `gate-events`, `timeline`, `gates` | Alarm takeover (§4.6): edge glow, banner, badge bump, chime, announcement. Lot tile turns red. |
+| `alarm.updated` | `summary`, `alarms`, `sessions` | If `resolved`, remove its banner and stop the wall-mode residual glow. Webhook status changes update silently. |
+| `gate.event` | `gate-events`, `sessions`, `summary`, `timeline`, `gates` | Gate feed plays the plate scan. Lot tile arrives or leaves. KPIs count. Radar blip. Live ping in visible lists. |
+| `permit.changed` | `permits`, `summary`, `sessions` | Lists update. A tile's colour changes if its session gets a permit. |
+| `request.created` | `permits`, `summary` | Info toast `requests.newRequestToast` with action `requests.review` (suppressed on `/admin/requests`) |
+
+**Scan-first ordering.** A `gate.event` for a check-in often arrives together with its `alarm.created`.
+The Gate feed plays the scan first, and the rest waits for the verdict:
+- Takeover, tile and KPI updates start when the verdict locks (≈ 1.2 s), not when the event arrives.
+- Screen-reader announcements are **not** delayed.
+- Under reduced motion there is no delay.
 
 ### 4.2 AlarmBanner
 
-**Source:** open alarms (`GET /api/alarms?status=open&limit=20`), minus the ids this browser session
-has dismissed (`sessionStorage["parklens.dismissedAlarms"]`, a JSON array). As a result:
-- An open alarm is visible right after login. The demo seed shows one immediately.
-- Nothing is lost across reconnects.
-
-It shows the **newest** remaining alarm. **Hide the banner on `/admin/alarms`**, because the list is
-the source of truth there. Sound and announcements still play on that page.
+Two modes, by route:
+- **Other admin pages (persistent, as in v1):** it shows open alarms minus the ids dismissed this session
+  (`sessionStorage["parklens.dismissedAlarms"]`), newest first. It is hidden on `/admin/alarms`.
+- **Command center `/admin`, including wall mode (transient):** it appears only for a *new*
+  `alarm.created` (the takeover, §4.6; a joined alarm switches it to the newest and restarts the
+  countdown) and collapses into the strip's alarm chip after 10 s (it flies to the chip, which pulses
+  once). The countdown pauses while the banner is hovered or holds focus, and in a hidden tab; a 3px
+  white line along its bottom edge shows the time left. Pre-existing open alarms never show it: the
+  strip chip, KPI tile, lot tile and Open alarms instrument already do. Resolving or dismissing the
+  alarm closes it at once.
+- Its actions are `alarms.banner.resolve` (opens the global ResolveAlarmDialog), `alarms.banner.view` and dismiss.
 
 ```
-┌────────────────────────────────────────────────────────────────────────────────────┐
-│ (Siren)  Car without permit entered    [ZH 999 999]    08:12 at gate main           │
-│          2 more open alarms                          [ Resolve ]  View alarm    ✕   │
-└────────────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ (Siren) Car without permit entered  [ZH 999 999]                  [ Resolve ]  View alarm  ✕ │
+│         14:32 at gate south  1 more open alarm                                              │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Visual:**
-- Background `--color-danger-solid`, text `--color-on-danger`, secondary text `--color-on-danger-muted`.
-- `--radius-lg`, `--shadow-banner`, 12px × 16px padding.
-- Sticky: `top: 0` on desktop and `top: var(--topbar-h)` on mobile, with `z-index: var(--z-banner)`.
-- Sits inside the content column with a 16px gap below it.
+**v2 look:**
+- Solid red gradient (`--c-red-500 → --c-red-600 → --c-red-700`, 100°), `--radius-lg`, `--shadow-banner`
+  (red-tinted drop plus a light inner top edge). Text `--color-on-danger`; meta `--color-on-danger-muted`.
+- Siren tile: 40px, 12px radius, white 16% glass, 22px icon.
+- Title in SG 700 `--text-md`, with a PlateChip md next to it. The plate stays white.
+- Buttons: Resolve (`inverse`), View alarm (underlined white link), dismiss (icon button).
 
-**Content:**
-- `Siren` icon (24px).
-- Title `alarms.banner.title.<type>` (display 600, `--text-md`).
-- PlateChip md, which stays white.
-- Meta line `alarms.banner.meta` with `{time, gate}` (`metaNoGate` when there is no `gateId`). Use
-  `time` for today and `dateTime` otherwise.
-- `alarms.banner.more_*` as a link to `/admin/alarms` when more than one alarm is visible.
+**Placement:**
+- Default (persistent): sticky at `top: calc(var(--strip-h) + 12px)` at the top of the content column.
+  Below 720px it scrolls away with the page (the top-bar alarm chip stays).
+- Command center (transient): in a zero-height sticky slot at the same position, so it floats over the
+  page head for its 10 s and the instruments never shift.
+- **Wall mode:** `position: fixed` over the KPI row for its 10 s (full content width, 16px below the
+  strip). Title `--text-xl`, meta `--text-base`. After it collapses, the breathing edge glow (§4.6) is
+  the persistent signal.
 
-**Actions:**
-- **Resolve:** Button `inverse` variant (white background, danger text), `alarms.banner.resolve`.
-  Opens the global ResolveAlarmDialog in place.
-- **View alarm:** a white underlined link, `alarms.banner.view` → `/admin/alarms?status=open&focus=<id>`.
-- **Dismiss:** an icon button (`X`, `aria-label` `alarms.banner.dismiss`). It adds the id to the
-  dismissed set. The alarm stays open and the nav badge still counts it.
-
-**Motion:**
-- On enter, the banner slides down by `--motion-distance` and fades in (`--dur-base`, `--ease-out`).
-- The siren icon pulses once (scale 1 → 1.15 → 1 over `--dur-pulse`). No looping animation.
+**Motion** (timings in §13):
+- Enter: slide down 14px + fade, `--ease-out`, 460 ms.
+- One white sheen sweeps across (1.1 s, after 200 ms).
+- The siren icon swings once (±14°, 900 ms).
+- No loops.
 
 **Mobile (< 720px):**
-- Row 1: icon, title, and the ✕ in the top-right corner.
-- Row 2: PlateChip and meta.
-- Row 3: Resolve and View as two equal-width buttons.
+- Title and plate wrap.
+- Actions become a full-width row.
+- ✕ stays top-right.
 
-The banner is **not** a live region. Screen-reader announcements come from §4.3.
+The banner is not a live region (§4.3 announces).
 
 ### 4.3 Announcement, sound, title, badge
 
 - **Screen readers:** the shell renders `<div class="sr-only" aria-live="assertive" aria-atomic="true">`.
   On `alarm.created`, it sets `alarms.announce.<type>` with `{plate, time}` and clears it after 5 s.
 - **Sound:**
-  - The toggle is the Switch `nav.sound.label` in the sidebar footer and the More sheet.
+  - The toggle is the sound icon button in the command strip (`aria-pressed`, label `nav.sound.label`) and a Switch in the mobile More sheet.
   - It is stored in `localStorage["parklens.alarmSound"]` (`"on"` or `"off"`) and **defaults to off**.
   - Switching it on plays the chime once, which confirms the setting and unlocks audio under the
     autoplay policy, and shows toast `nav.sound.enabled`.
@@ -420,18 +493,18 @@ The banner is **not** a live region. Screen-reader announcements come from §4.3
 - **Nav badge:** follows `summary.openAlarms`. It scale-bumps once (1 → 1.2 → 1, `--dur-base`) when
   the count increases. No bump under reduced motion.
 
-### 4.4 Fresh-paint highlight
+### 4.4 Live ping (v1 "fresh paint")
 
-When a row whose id just arrived via SSE is rendered in a visible list, add `.is-fresh`:
-- The background starts as `--color-highlight`.
-- Hold for 600 ms, then transition `background-color` to transparent over `--dur-highlight`.
+When a row, card or tile whose id just arrived via SSE is rendered:
+- It gets `.is-fresh`: background `--color-highlight` (cyan-50; on the dark feed, `rgb(63 216 245 / .16)`).
+- Hold 600 ms, then fade to transparent over `--dur-highlight`.
+- New list rows also expand from 0 height (motion `layout` + `initial={{height: 0, opacity: 0}}`).
 
-Rows targeted by `?focus=<id>` get the same highlight plus `scrollIntoView({ block: 'center' })`.
-Under reduced motion, pass `behavior: 'auto'`.
+Rows targeted by `?focus=<id>` behave as in v1.
 
 ### 4.5 ResolveAlarmDialog (global, mounted once in the shell)
 
-It opens from the banner, the dashboard alarm list and the alarms page. Dialog size md.
+It opens from the banner, the command center's Open alarms instrument, the plate dossier and the alarms page. Dialog size md.
 
 ```
 Resolve alarm                                                          ✕
@@ -468,6 +541,38 @@ Visible to other admins.
 - **422 / `INVALID_STATE`:** close the dialog, show an info toast `alreadyResolved`, and refetch.
 - **Initial focus:** the Note textarea.
 
+### 4.6 Alarm takeover (new in v2)
+
+**Purpose:** make a new unauthorized entry impossible to miss anywhere in the admin area, strongly
+but calmly, without ever blocking work.
+
+**Trigger:** `alarm.created` only. It is never triggered by alarms that already exist at load (those get
+the badge and, outside the command center, the persistent banner, §4.2). A second `alarm.created` within 10 s joins the running takeover: counts
+update and the banner switches to the newest alarm, but the pulses don't restart.
+
+**Sequence** (t = when the verdict locks in the gate feed, or on arrival when the feed isn't visible or
+the alarm is an `overstay`):
+
+| t | Layer | What happens |
+|---|---|---|
+| 0 | Edge glow | Fixed full-viewport layer (`.takeover`, `z-index: --z-takeover`, `pointer-events: none`). It has three inset red shadows: a 2px edge line, a 64px inner glow and a 180px faint wash. Opacity keyframes over `--dur-takeover` (2.4 s): 0 → 1 at 9% → 0.28 at 32% → 0.85 at 50% → 0 at 100%. Two pulses, then gone. |
+| 0 | Badges | Nav alarm badge, strip alarm chip and the Open alarms count bump (scale 1 → 1.32 → 1, 460 ms, `--ease-snap`). The strip chip appears if it was hidden. |
+| 0 | Sound | Chime (v1 §4.3), only if alarm sound is on. At most one chime per 3 s. |
+| 0 | Screen reader | Assertive announcement `alarms.announce.<type>`. |
+| +80 ms | Banner | Slides in (§4.2), unless the admin is on `/admin/alarms`. On the command center it is transient: it collapses into the strip chip after 10 s. |
+| 0–600 ms | Instruments | The Open alarms KPI turns alert red and counts up. The lot tile turns red and starts its pulse. The alarm item slides into the Open alarms instrument (`--ease-snap`). The radar gets a red blip. |
+
+**Rules:**
+- Never steal focus. Never open a dialog. Never block pointer input: the glow layer has `pointer-events: none`.
+- Never flash more than twice. Luminance change stays well under the WCAG 2.3.1 flash threshold: two
+  pulses over 2.4 s, mostly at the edges.
+- **Wall mode residual:** after the pulses, while any open alarm is not dismissed, the edge glow stays
+  at 0.18 ↔ 0.42 opacity, breathing over `--dur-breathe` (4 s alternate). It stops on resolve or dismiss.
+- **Reduced motion:** no pulses and no breathing. Show the glow layer statically at opacity 1 for 4 s
+  (wall mode: statically at 0.35 while unresolved). The banner appears without sliding. Badges don't bump.
+- The takeover runs in every admin route, including dialogs being open (the glow sits below dialogs
+  and the palette).
+
 ---
 
 ## 5. Screens
@@ -500,9 +605,15 @@ How it works
   input holds a valid plate, or to `/request` when it is empty. An invalid plate shows
   `validation.plateInvalid` inline. Pressing Enter in the plate input triggers the same action.
 - **"Check a request"** (`landing.statusCta`) → `/request/status`.
+- **Hero (≥ 1024px):** the column widens to 1120px; the headline, form and status link sit left
+  (540px) and a dark scanner card sits right: the gate-feed stage with lock-on brackets decoding a demo
+  plate, then an ALLOWED verdict, the pass dropping into a three-row list, looping every ~4.3 s. Slight
+  3D tilt, slow float, soft blue/cyan glow. Decorative (`aria-hidden`); pauses off-screen and in hidden
+  tabs; reduced motion shows one static locked frame. Below 1024px a compact version (stage only) sits
+  between the lead and the form. The form stays the primary action.
 - **Steps** are an `<ol>` because they are a real sequence.
-  - Each number sits in a 28px circle with a 1.5px `--color-text` outline, in display 600.
-  - Title: `--text-ui` 600. Body: `--text-sm`, muted.
+  - Each number sits in a 28px circle with a 1.5px `--color-text` outline, in SG 700.
+  - Title: SG 700 `--text-ui`. Body: Inter `--text-sm`, muted.
   - Three columns at ≥ 720px, stacked below.
 - The page makes no API calls.
 
@@ -558,11 +669,11 @@ The parking team will review your request for [ZH 123 456].
 
 Reference code
 ┌───────────────────────────────────┐
-│ PL-7K3Q9                   [Copy] │   CopyField, mono --text-2xl 600, tracking 0.04em
+│ PL-7K3Q9                   [Copy] │   CopyField, SG 700 --text-2xl, tracking 0.04em
 └───────────────────────────────────┘
 Status link
 ┌─────────────────────────────────────────────────────────┐
-│ https://…/request/9fJx…Qe2                  [Copy link] │   CopyField, mono --text-sm, middle-truncated
+│ https://…/request/9fJx…Qe2                  [Copy link] │   CopyField, Inter --text-sm, middle-truncated
 └─────────────────────────────────────────────────────────┘
 Save the link or note the reference code. To look up the request later, you need the code and your plate.
 
@@ -574,7 +685,7 @@ Save the link or note the reference code. To look up the request later, you need
 ### 5.3 Status lookup `/request/status`
 
 - h1 `status.lookup.title` and lead `status.lookup.lead`, then a Panel form:
-  - **Reference code:** Input in mono, uppercased as the user types, `autocomplete="off"`,
+  - **Reference code:** Input in SG 700, uppercased as the user types, `autocomplete="off"`,
     placeholder `status.lookup.referencePlaceholder`.
   - **Plate:** PlateInput md.
   - **Submit:** `status.lookup.submit`.
@@ -588,7 +699,7 @@ Save the link or note the reference code. To look up the request later, you need
 every 60 s and on window focus.
 
 ```
-Request PL-7K3Q9                                  ← h1 --text-2xl; reference in mono
+Request PL-7K3Q9                                  ← h1 --text-2xl; reference in SG 700
 [ZH 123 456]                                      ← PlateChip lg
 
 ┌───────────────────────────────────────────────────────┐
@@ -621,14 +732,15 @@ Check another request      Send a new request (rejected / revoked / expired only
 | revoked | – | neutral | `Ban` | `revoked.*` |
 
 - **StatusPanel:** tone background and border, `--radius-lg`, 20px padding. 24px icon, title in
-  display 600 `--text-lg`, body `--text-base`.
+  SG 700 `--text-lg`, body `--text-base`.
 - **Details:** a DescriptionList. Labels come from `common.fields.*`; the type uses `common.permitTypeLong.*`.
 - **404:** EmptyState with `status.notFound.title/body`, plus action `status.notFound.action` → `/request/status`.
 - **Loading:** skeletons for the plate and the panel.
 
 ### 5.5 Login `/login`
 
-- A centred column, max 400px. The logo mark sits above h1 `login.title` and lead `login.lead`.
+- A centred column, max 400px. The logo mark sits above h1 `login.title` and lead `login.lead`,
+  framed as a small static viewfinder (lock-on brackets and a resting cyan scan line, decorative).
 - **Panel:**
   - Email: `type=email`, `autocomplete=username`.
   - Password: `autocomplete=current-password`, with an Eye/EyeOff icon button that uses `aria-pressed`
@@ -639,68 +751,243 @@ Check another request      Send a new request (rejected / revoked / expired only
   Keep the email, clear the password, and focus the password field.
 - **Below the panel:** `login.publicHint` plus the link `login.publicLink` → `/`.
 
-### 5.6 Dashboard `/admin`
+### 5.6 Command center `/admin` (replaces the v1 dashboard)
 
-**Purpose:** show the state of the lot at a glance and give the shortest path to acting on it.
-Header: h1 `dashboard.title`, sub-line `dashboard.today {date: dateWeekday}`.
+**Purpose:** show the state of the lot at a glance and give the shortest path to act. It is designed
+first for 1440×900 (fits without scrolling), scales to 1920×1080 in wall mode (§11), and stacks down to mobile.
+
+Header: h1 `dashboard.title`, sub-line `dashboard.today {date}` (long weekday date). Right: primary
+Button `strip.wallEnter` (`Maximize` icon), shown ≥ 960px.
+
+**1440×900 (sidebar visible, 12-column grid, gap `--cc-gap`)**
 
 ```
-┌────────────────┬────────────────┬────────────────┬────────────────┬────────────────┐
-│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│                │▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│                │                │  3px top bar when alert
-│ Open alarms    │ Parked now     │ Requests       │ Entries today  │ Valid permits  │
-│ 1   (Siren)    │ 2              │ waiting        │ 3              │ today          │
-│                │ (x) 1 without  │ 2   (Clock)    │                │ 3              │
-│ View alarms    │ permit         │ Review requests│ View gate log  │ View permits   │
-└────────────────┴────────────────┴────────────────┴────────────────┴────────────────┘
-┌ Open alarms ────────────────────── View all ┐  ┌ Parked now ─────────────── View all ┐
-│ [ZH 999 999] (No permit)  Today, 08:12       │  │ [ZH 999 999] (No permit)      40 min │
-│ gate main  (Still parked)        [Resolve]   │  │ [ZH 123 456] Anna Muster, Perm. 2 h  │
-├──────────────────────────────────────────────┤  └──────────────────────────────────────┘
-┌ Latest gate events ─────────────── View all ┐  ┌ Waiting for approval ───── View all ┐
-│ 5 min ago  In   [BE 98 765] (Authorized)     │  │ [AG 44 321] Tom Weber                │
-│ 2 h ago    Out  [BE 98 765]  Marco Rossi     │  │ Day permit, Wed, 30 Sep   2 h ago    │
-└──────────────────────────────────────────────┘  └──────────────────────────────────────┘
+┌─ KPI tiles (5 × 1fr, height --cc-kpi-h 104) ─────────────────────────────────────────────────────────┐
+│┌⚠ Open alarms ──┐┌ Parked now ────┐┌ Entries today ─┐┌ Requests waiting ┐┌ Valid permits today ┐   │
+││ 1        ╱╲_╱  ││ 23 / 40   ╱‾‾  ││ 44    ╱╲_╱‾    ││ 2                ││ 28                  │   │
+││ Denied today: 2 ││ 1 without permit││ 2 in the current…││ Oldest sent 3 h ago││ Permanent 26, day 2 │   │
+│└────────────────┘└────────────────┘└────────────────┘└──────────────────┘└─────────────────────┘   │
+├─ row --cc-row-main (400) ────────────────────────────────────────────────────────────────────────────┤
+│┌ Occupancy (3 col) ─[P 17 free]┐┌ Parked vehicles (5 col) ── legend ┐┌ Gate feed (4 col, DARK) ─ ●LIVE ┐│
+││      ╭─── arc 300° ───╮        ││ ┃ZH┃AG┃LU┃SG┃  ┃ZG┃TG┃BS┃SO┃ZH!┃ ││ [● North ACTIVE][● South ACTIVE]  ││
+││     (  radar sweep   )        ││ ─ ─ ─ ─ ─ aisle ─ ─ ─ ─ ─ ─ ─ ›  ││ ┌ GATE NORTH ────── 14:31:48 ┐   ││
+││     (    ( 23 )      ) lens   ││ ┃BL┃SZ┃  ┃VD┃GE┃  ┃TI┃FR┃GR┃   ┃ ││ │   ⌜ [+ ZH 271 009] ⌝       │   ││
+││      ╰────────────────╯        ││ ┃BE┃  ┃ZH┃ZH┃  ┃ZH┃  ┃ZH┆VS┆   ┃ ││ │     [✓ ALLOWED]            │   ││
+││ ■ With permit 22  ■ No permit 1││ ─ ─ ─ ─ ─ aisle ─ ─ ─ ─ ─ ─ ─ ›  ││ │ Permanent permit: S. Weber │   ││
+││ Radar: gate events of the last …││ ┃  ┃LU┃  ┃  ┃  ┃  ┃  ┃  ┃  ┃   ┃ ││ └────────────────────────────┘   ││
+││                                ││ One tile per parked car, in order…││ 14:26:10 ↗ [AG 55 780] ● Out  south││
+│└────────────────────────────────┘└───────────────────────────────────┘└───────────────────────────────┘│
+├─ row --cc-row-lower (224) ───────────────────────────────────────────────────────────────────────────┤
+│┌ Today (8 col) ─ ■Entries ■Exits ◆Denied ─Parked ──── 44 in, 21 out, 2 denied ┐┌ Open alarms (4 col) ⓵ ┐│
+││ 40 cap- - - - - - - - - - - - - - - - - - [14:32]┊////////////////////////// ││[ZH 999 999][No permit] ││
+││                        ◆  ╭──────────╮ ___●      ┊//// future (hatched) //// ││          [Resolve]     ││
+││            ▁ ▃ █ ▅ ▂ ▂ ▄ █ ▂ ────────────────────┊────────────────────────── ││Entered 08:12 at gate…  ││
+││                ▔ ▔ ▀ ▀ ▀ ▔ (exits below the line)┊                           ││1 earlier alarm…        ││
+││ 00    03    06    09    12    15    18    21                                 │└────────────────────────┘│
+│└──────────────────────────────────────────────────────────────────────────────┘                          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**KpiStrip:**
-- One Panel split into cells by 1px `--color-border` dividers, like the lines between parking bays.
-- Each cell is a single `<a>`. Label `--text-sm` 600 muted; value display `--text-3xl` tabular; link text `--text-sm` in link colour.
-- Cell padding: 16px × 20px.
-- Data: `GET /api/dashboard/summary`.
+Grid areas: `"k×12" / "g×3 l×5 f×4" / "t×8 a×4"`, rows `auto var(--cc-row-main) var(--cc-row-lower)`.
+Panels never grow a row: long content scrolls or is masked inside the panel.
 
-| Cell | Value | Secondary line | Link | Alert state |
-|---|---|---|---|---|
-| `kpi.openAlarms` | `openAlarms` | – | `/admin/alarms` (`kpi.viewAlarms`) | `> 0`: `--color-danger-bg` background, value in `--color-danger-text`, `Siren` icon, 3px `--color-danger-solid` top bar |
-| `kpi.parkedNow` | `parkedNow` | `parkedUnauthorized > 0`: `kpi.parkedUnauthorized_*` in danger text with a `ShieldAlert` icon; else `kpi.allParkedAuthorized` (muted) | `/admin/activity` (`kpi.viewParked`) | – |
-| `kpi.pendingRequests` | `pendingRequests` | – | `/admin/requests` (`kpi.reviewRequests`) | `> 0`: `Clock` icon, 3px `--color-warning-solid` top bar |
-| `kpi.entriesToday` | `entriesToday` | – | `/admin/activity?tab=log` (`kpi.viewLog`) | – |
-| `kpi.activePermitsToday` | `activePermitsToday` | – | `/admin/permits?activeToday=true&status=approved` (`kpi.viewPermits`) | – |
+**960–1279px:** sidebar visible; 2 columns. KPIs 3 + 2. Areas `"k k" "g f" "l l" "t t" "a a"`, rows
+auto; gauge and feed have a min height of 420px.
 
-- **Responsive:** 5 columns at ≥ 1080px, 3 + 2 at 720–1079px, 2 columns below 720px. Below 720px the
-  "Open alarms" cell spans both columns when its value is above 0.
+**Mobile (< 720px):**
+- Order: KPIs, Occupancy, Gate feed, Open alarms, Lot map, Timeline.
+- KPIs become a horizontal scroll-snap row (72% card width, `scroll-snap-align: start`).
+- The gauge keeps 232px; its legend and caption sit below.
+- Gate feed: stage 150px plus 5 rows.
+- Lot map: bays shrink to fit 10 per row (min 28px). Below 30px, the compact grid is used (see Lot map).
+- Timeline: scrolls horizontally inside its panel (24 × 28px) and scrolls "now" into view on mount.
 
-**Panel grid:**
-- At ≥ 1080px, two columns (3fr / 2fr): left holds Open alarms then Latest gate events; right holds
-  Parked now then Waiting for approval.
-- Below that, one column in the order: Open alarms, Parked now, Waiting for approval, Latest gate events.
-- Each panel loads, empties and errors on its own. Every panel header has a "View all" link.
+#### Data per instrument
 
-**Panels:**
-- **Open alarms:** `GET /api/alarms?status=open&limit=5`.
-  - Row: PlateChip md, alarm type badge, RelativeTime, gate, and a "Still parked" badge when true.
-  - Action: Button primary sm `alarms.resolve`, which opens the ResolveAlarmDialog.
-  - Empty: `dashboard.openAlarms.empty*` with a success-coloured `CircleCheck` icon.
-- **Parked now:** `GET /api/sessions?active=true&limit=10`.
-  - Sort client-side: unauthorized first, then `enteredAt` descending.
-  - Row: PlateChip md, `permit.holderName` + `common.permitType.*`, or a danger badge `common.noPermit`.
-    Duration is right-aligned and tabular.
-  - When `openAlarmId` is set, add a small link `activity.openAlarm` → `/admin/alarms?focus=`.
-- **Latest gate events:** `GET /api/gate-events?limit=8`.
-  - Row: RelativeTime (fixed 96px column), direction icon + `common.direction.*`, PlateChip sm, access
-    badge (`in` events only), and the holder name muted.
-- **Waiting for approval:** `GET /api/permits?status=pending&limit=5`.
-  - Row: PlateChip md, holder name, `common.permitDailyOn` or `common.permitTypeLong.permanent`, and RelativeTime of `createdAt`.
-  - The whole row links to `/admin/requests`.
+| Instrument | Source | Refresh |
+|---|---|---|
+| KPI tiles | `GET /api/dashboard/summary`; sparklines from `timeline`. Requests: `GET /api/permits?status=pending&limit=1` (oldest `createdAt`). Permits breakdown: `GET /api/permits?status=approved&activeToday=true&limit=200`, counted by `type`. | SSE + 60 s |
+| Occupancy gauge | `summary.parkedNow`, `parkedUnauthorized`, `capacity`. Radar: `GET /api/gate-events?limit=100`, filtered to `occurredAt` ≥ now − 60 min. | SSE + 60 s |
+| Lot map | `GET /api/sessions?active=true&limit=200` | SSE |
+| Gate feed + sensors | `GET /api/gate-events?limit=12` (list) and `GET /api/dashboard/gates` | SSE + 60 s (ages tick locally) |
+| Timeline | `GET /api/dashboard/timeline` | SSE + 60 s (now marker moves locally each minute) |
+| Open alarms | `GET /api/alarms?status=open&limit=20` | SSE + 60 s |
+
+Each instrument loads, empties and errors on its own. Loading shows the instrument frame with a skeleton
+(gauge: empty track; lot: bays without cars; feed: stage with "Connecting…"; timeline: axis only). A
+load error shows the v1 error EmptyState inside the instrument.
+
+#### KPI tiles
+
+Each tile is a glass `<a>` instrument (registration marks, spotlight):
+- Label: SG 700 `--text-sm`, muted, 15px icon.
+- Value: `--cc-kpi-value`, count-up.
+- Sub-line: Inter `--text-sm`.
+- Optional sparkline: 88×34 SVG (150×56 in wall mode) to the right of the value, with the last point as a glowing dot.
+
+| Tile | Value | Sub-line | Sparkline (from `timeline.buckets`) | Link | Alert |
+|---|---|---|---|---|---|
+| `dashboard.kpi.openAlarms` | `openAlarms` | `dashboard.kpi.deniedToday {count}` (Σ `denied`) | `denied` per hour, red | `/admin/alarms?status=open` | `> 0`: red hairline + glow, red value and label, pinging red dot instead of the icon |
+| `dashboard.kpi.parkedNow` | `parkedNow` + `dashboard.kpi.capacityUnit {capacity}` | `kpi.parkedUnauthorized_*` (danger) or `kpi.allParkedAuthorized` | `occupancy`, cyan | `/admin/activity` | – |
+| `dashboard.kpi.entriesToday` | `entriesToday` | `dashboard.kpi.entriesThisHour {count}` (current bucket) | `entries`, blue | `/admin/activity?tab=log` | – |
+| `dashboard.kpi.pendingRequests` | `pendingRequests` | `dashboard.kpi.oldestRequest {time}` (relative), or none at 0 | – | `/admin/requests` | `> 0`: amber icon |
+| `dashboard.kpi.activePermitsToday` | `activePermitsToday` | `dashboard.kpi.permitsBreakdown {permanent, daily}` | – | `/admin/permits?activeToday=true&status=approved` | – |
+
+Sparklines start at the first bucket with activity (or 05:00) and end at the current bucket. They are
+`aria-hidden`. The tile's accessible name is label + value + sub-line.
+
+#### Occupancy gauge
+
+- **Arc:** SVG, 232px (`--cc-gauge-d`), radius 104, stroke 12, round caps, 300° with the gap at the bottom
+  (starts at 120° clockwise from 3 o'clock). Layers:
+  - Track (`--gauge-track`).
+  - Authorized segment (blue gradient, soft blue drop-shadow), length `300° × (parked − unauthorized) / capacity`.
+  - Unauthorized segment (`--gauge-unauthorized` with red glow), directly after the authorized one.
+  - If `parked > capacity`, the arc is full, and the lens shows `dashboard.gauge.overCapacity {count}` in danger text.
+  - Implementation note: set `stroke-dasharray` in **px** (circumference 2π·104). Chromium ignores
+    `pathLength` for CSS-set dash arrays.
+- **Ticks:** 31 ticks every 10° just outside the arc; every 50° is longer and darker (`--gauge-tick`).
+- **Radar:** a disc inside the arc (69% of the gauge):
+  - Pale blue fill, 2 hairline rings, a crosshair.
+  - A cyan conic sweep rotating once per `--dur-radar` (8 s).
+  - Blips are the gate events of the last 60 min, placed like a clock face: angle = minute × 6° +
+    second × 0.1°. Ring: first gate from `/dashboard/gates` inner, second outer; further gates fall back
+    to the outer ring.
+  - Colours: in = cyan, out = slate, denied = red.
+  - Opacity fades with age (0.95 → 0.35).
+  - Each blip flares (scale 1.7, full opacity) when the sweep passes it. Set its animation delay to
+    `angle/360 × 8 s − sweepPhase`, where `sweepPhase` is read from the sweep's `getAnimations()[0].currentTime`.
+- **Lens:** a 46% white-glass disc in the centre with `--glass-filter` blur 6px. It shows the value
+  (`--cc-gauge-value`, count-up) and `dashboard.gauge.ofCapacity {capacity, percent}`. `role="img"`, `aria-label`
+  `dashboard.gauge.aria`.
+- **Header right: parking-guidance plaque** (dark accent, modelled on Swiss "Parkleitsystem" signs): a blue
+  "P" square, then free spaces (`capacity − parkedNow`, min 0) as green glowing digits, then `dashboard.gauge.free`.
+  At 0 free, the digits turn red and read `dashboard.gauge.full`.
+- **Foot:** a one-line legend `dashboard.gauge.withPermit {n}` / `dashboard.gauge.noPermit {n}`, and the
+  caption `dashboard.gauge.radarCaption` with `dashboard.gauge.radarHint` as its tooltip.
+
+#### Lot map (parked vehicles)
+
+We have no bay sensors, so the map shows **symbolic slots**: one tile per active session. The caption
+`dashboard.lot.caption` states this.
+
+**Slot assignment:**
+- On first load, sort active sessions by `enteredAt` ascending and give them slots 0…n−1.
+- Keep `sessionId → slot` in memory. A new session takes the first free slot. A closed session frees
+  its slot, and its tile leaves.
+- A reload reassigns compactly.
+- Sessions superseded by a new check-in of the same plate keep the slot (same plate).
+
+**Layout by capacity:**
+- ≤ 60: the drawn lot.
+  - Rows of 10 bays (`--cc-bay-w × --cc-bay-h`); two rows face an aisle (`--cc-aisle-h`).
+  - Bays are separated by 2px white road markings (`--lot-marking`) on `--lot-surface`. The open side
+    faces the aisle.
+  - Each aisle has a dashed centre line and a painted direction chevron at its right end.
+  - The last row may be partial.
+- 61–200: the compact grid. 20 columns of 14px rounded squares in the same colours, no bays, with the
+  same tooltips.
+- \> 200: a 100-cell waffle, where each cell is `capacity/100` spaces, coloured by share. There are no
+  per-car tooltips; clicking goes to Activity.
+- `parked > capacity`: extra tiles go into an overflow row after the lot, with a red pill
+  `dashboard.lot.overflow {count}`.
+
+**Tile (`<button class="car">`, 72% × 82% of the bay):**
+- It reads as a top-down car: rounded body, a light windscreen band towards the aisle, and a white top sheen.
+- Label: the canton code (first 2 characters of the plate, SG 700 10px).
+
+| State | Fill / edge | Extra |
+|---|---|---|
+| Permanent permit | `--vehicle-permanent` / solid `--vehicle-permanent-edge` | – |
+| Day permit | `--vehicle-daily` / **dashed** `--vehicle-daily-edge` | – |
+| No permit | `--vehicle-unauthorized` / solid red, red glow | "!" badge top-right, plus a pulse ring (`--dur-pulse`, infinite) while the session has an open alarm |
+| Arriving | Drops in from the aisle side (translateY ∓16px, scale 0.8 → 1, `--ease-snap`, 620 ms) plus a cyan ping ring | – |
+| Leaving | Fades and moves back towards the aisle, 360 ms | – |
+| Hover / focus | Lifts 2px, reticle corners (blue, 7px) | Dark tooltip |
+
+**Tooltip** (dark accent, `role="tooltip"`, on hover and focus):
+- PlateChip sm + holder name (or `dashboard.lot.unknownVehicle`).
+- Permit line (`dashboard.lot.tooltip.*`).
+- `dashboard.lot.tooltip.parkedSince {duration, time}`.
+- Hint `dashboard.lot.tooltip.hint`.
+
+**Activation:**
+- Click or Enter opens the **PlateDossier** (§10).
+- Accessible name: `dashboard.lot.tileLabel`.
+- The map is a `role="group"` with `aria-label` `dashboard.lot.title`. Tiles are in DOM order: slot order, rows left to right.
+
+#### Gate feed (the one dark hero instrument)
+
+- **Surface:** `--color-dark-bg` with a blue radial light from the top, `--radius-lg`, 1px `--color-dark-border`.
+  Text, icons and focus use the dark tokens.
+- **Header:** title `dashboard.feed.title` + a LIVE readout.
+- **Gate sensors:** up to 3 cells from `/dashboard/gates`, 2 per row.
+
+  | Age of `lastEventAt` | State | Display |
+  |---|---|---|
+  | < 10 min | `dashboard.sensors.state.active` | Green pinging dot |
+  | < 2 h | `dashboard.sensors.state.idle` | Grey static dot |
+  | ≥ 2 h between 06:00 and 20:00 local | `dashboard.sensors.state.silent` | Amber dot |
+
+  - Each cell shows the name (`gateId` capitalised, or `dashboard.sensors.unnamed`), the state readout,
+    `dashboard.sensors.lastEvent {time}` (relative, ticking) and `dashboard.sensors.counts*`.
+  - A cell's `title` is `dashboard.sensors.hint`: we infer activity from events, not camera health.
+  - More than 3 gates: a "+N" link to Activity.
+- **Stage** (150px; 220px in wall mode):
+  - A camera viewport with a scanline texture, vignette and cyan viewfinder corners.
+  - HUD: `dashboard.feed.stageGate {gate}` (top-left) and `timeSeconds` (top-right), as uppercase readouts.
+  - It always shows the newest event: PlateChip lg (xl in wall mode) inside a reticle, the verdict stamp
+    and the reason line.
+- **Scan sequence** for each new `gate.event` (details in §13):
+  1. The previous stage event moves into the list (new row expands at the top).
+  2. The plate appears with its final width fixed and scrambled characters. The reticle "hunts" in cyan.
+  3. The beam sweeps left → right (`--dur-scan`).
+  4. Characters decode left → right (`--dur-decode`).
+  5. The reticle locks (snap), and the stamp appears (`--dur-verdict`):
+     - `in`, allowed: green `dashboard.feed.verdict.allowed` with a stage glow; reason from `simulator.result.reason.*`.
+     - `in`, denied: red `dashboard.feed.verdict.denied`; reason `simulator.result.reason.NO_VALID_PERMIT`.
+     - `out`: neutral `dashboard.feed.verdict.out`; reason `dashboard.feed.reasonOut {duration}`, or
+       `dashboard.feed.reasonOutUnknown` when there was no session.
+
+  Queue: events play one at a time, each ≥ 1.4 s. If more than 3 are waiting, the older ones skip the
+  animation and go straight into the list.
+- **List:**
+  - The previous 8 events in rows of 38px: time (SG 700, tabular), direction icon (`in` cyan, `out` slate),
+    PlateChip sm, verdict dot + word, gate.
+  - The bottom fades out (mask). New rows get the live ping.
+  - `aria-live="polite"` announces additions, e.g. "ZH 271 009, allowed, gate north".
+- **Empty:** the stage shows `dashboard.feed.emptyTitle` / `emptyBody` in the viewfinder.
+
+#### Activity timeline ("Today")
+
+- **SVG** with viewBox 760×164, scaled to width. One slot per `buckets[i]` (23 or 25 on DST days).
+  Position by **index**; label with `bucket.hour`.
+- **Bars:** entries rise from the baseline (blue gradient); exits hang below it (`--chart-exits`). Both
+  use the same unit scale, so they are comparable. `rx` 2.5; width `min(14, slot × 0.46)`.
+- **Denied:** a red diamond above that hour's entry bar (`--chart-denied`, glow).
+- **Occupancy:** a smoothed line (quadratic through midpoints, so no overshoot) with a cyan area fill,
+  on a 0…capacity scale. Gridlines at 10/20/30. A dashed capacity line is labelled
+  `dashboard.timeline.capacity {capacity}` at the right; "20" and "0" also appear on the right axis.
+  `occupancy: null` buckets (future) are not drawn.
+- **Now marker:** a dashed vertical line at `index(currentHour) + minutes/60`. A dark tooltip chip on top
+  shows `HH:mm`. The occupancy line ends in a glowing dot with a halo pulse.
+- **Future:** a hatched area (`url(#p-future)`) from now to the end.
+- **X axis:** every 3 h, SG 700 10.5px, subtle.
+- **Header:** legend (`dashboard.timeline.legend.*`) and totals `dashboard.timeline.totals`.
+- **Accessibility:** `role="img"` with `aria-label` `dashboard.timeline.aria`, plus a visually hidden
+  table of the buckets for screen readers.
+
+#### Open alarms
+
+- Items from open alarms. Each item has a red-tinted glass background, a 3px glowing red left bar, and:
+  - Row 1: PlateChip md (denied state), type badge, then Button primary sm `alarms.resolve` pushed right.
+  - Row 2: `dashboard.openAlarms.metaParked` (or `meta` when the car left, `metaOverstay` for overstay).
+  - Row 3 (optional): `alarms.previous_*` in warning text.
+  - Below 720px: plate + badge, then the meta text, then Resolve full-width (40px) at the bottom.
+- Resolve opens the global ResolveAlarmDialog (v1 §4.5).
+- On resolve the item slides out right (280 ms) and the list closes the gap (layout).
+- **All clear state:** a green ring with `ShieldCheck` (success glow), title `dashboard.openAlarms.emptyTitle`,
+  body `dashboard.openAlarms.emptyBody`.
 
 ### 5.7 Alarms `/admin/alarms`
 
@@ -776,8 +1063,8 @@ A queue of **RequestCards** rather than a table: each card needs room for notes,
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 - **Card:** Panel with 20px padding and 12px between cards. Header: PlateChip md, holder name
-  (`--text-ui` 600) with the email below (muted), and on the right RelativeTime `requests.requestedAt`
-  plus `requests.reference` in mono.
+  (SG 700 `--text-ui`) with the email below (muted), and on the right RelativeTime `requests.requestedAt`
+  plus `requests.reference` in SG 700.
 - **Type line:** `requests.permanent`, or `requests.dailyFor {date: dateWeekday}`.
 - **Warnings** (InlineAlert sm, in this order):
   1. `isDatePassed`: **warning**, `requests.warnings.datePassed {date}`. **Approve is disabled**,
@@ -831,12 +1118,12 @@ column shown, and `requests.empty.all*` as the empty state.
 ```
 
 **Columns:**
-- **Holder:** name (500) with the email below (muted).
+- **Holder:** name (SG 700) with the email below (Inter, muted).
 - **Type:** `common.permitTypeLong.permanent`, or `common.permitDailyOn {date}`.
 - **Status:** StatusBadge, then one of:
   - `isActiveToday`: a success dot with `common.validToday`.
   - Approved and `isDatePassed`: muted `common.datePassed`.
-- **Source:** `common.source.admin`, or `common.source.request` with the reference in mono below.
+- **Source:** `common.source.admin`, or `common.source.request` with the reference in SG 700 below.
 - **Created:** `date`.
 
 **Row click and paging:**
@@ -867,7 +1154,7 @@ column shown, and `requests.empty.all*` as the empty state.
 
 - Lead `permits.createDialog.lead`. Submit `submit`.
 - `409 ALREADY_PERMITTED` shows on the plate field.
-- Success: close, toast `success {plate}`, invalidate `permits` and `summary`, and fresh-paint the new row.
+- Success: close, toast `success {plate}`, invalidate `permits` and `summary`, and live-ping the new row.
 
 **EditHolderDialog** (sm): holder name (required) and email. Submit `permits.editDialog.submit`,
 success toast `permits.editDialog.success`. Sends `PATCH`.
@@ -983,12 +1270,30 @@ Empty: `activity.empty.parkedTitle/Body`, `Car` icon.
 | check-in denied | danger (danger-bg fill) | `CircleX` | `result.denied` | `result.reason.NO_VALID_PERMIT` + link `result.viewAlarm` → `/admin/alarms?focus=<alarmId>` |
 | check-out | neutral | `LogOut` | `result.checkedOut` | `result.parkedFor {duration}`, or `result.noSession` when `sessionId` is null |
 
-- New cards get the fresh-paint highlight.
+- New cards get the live ping.
 - The list container is `aria-live="polite"`, so only the new card is announced.
 - Header action: `clearResults` (ghost sm).
 - Empty state: `simulator.empty.*`, `ScanLine` icon.
 - A denied check-in also triggers the global alarm banner and sound. This is correct behaviour and
   makes the demo convincing.
+
+**Autopilot panel (v2).** A glass panel at the top of the simulator's form column, above "Simulate a car":
+
+```
+┌ Autopilot ───────────────────────────────────────────── [ o] Run autopilot ┐
+│ Generates realistic gate traffic every few seconds: mostly cars with a       │
+│ permit, now and then an unknown plate. Useful for demos.                     │
+│ Pace  [ Calm | Busy ]                     24 events sent, 2 alarms this run  │
+│ (!) The events are real. They create sessions, alarms and notifications.     │
+│     Autopilot stops when you log out or close this tab.                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+- Keys: `autopilot.*`.
+- The Switch toggles autopilot; the pace SegmentedControl is `autopilot.pace.*`.
+- Stats come from the running session (§12).
+- The warning is an InlineAlert, warning tone.
+- While autopilot runs, the result cards below also show its events: they share the simulator result
+  list, and each card has an `autopilot.badge` tag.
 
 ### 5.12 Settings `/admin/settings`
 
@@ -1019,6 +1324,14 @@ Format
   - `ok`: success, `testOk {status}`.
   - Otherwise: danger, `testFailed {error}` when `error` is set, else `testFailedStatus {status}`.
 
+**1b. Parking lot** (`settings.lot.*`, new in v2; placed between Alarm notifications and Camera connection)
+- Field `capacityLabel`: `type="number"`, `inputmode="numeric"`, min 1, max 5000, step 1, suffix
+  `capacitySuffix`, hint `capacityHint`.
+- Validation: `validation.capacityInvalid`.
+- Save sends `PUT /api/settings {lot: {capacity}}` (the webhook is not sent), then toast `saved`, then
+  invalidate `settings` and `summary`.
+- The command center gauge and lot map re-layout immediately.
+
 **2. Camera connection** (`settings.camera.*`, read-only DescriptionList)
 - `checkInLabel`: `POST {origin}/api/gate/check-in` in mono, as a CopyField that copies the URL only.
 - `checkOutLabel`: the same pattern for check-out.
@@ -1034,7 +1347,7 @@ Format
   - `common.fields.created` (`date`).
   - Remove: ghost sm in danger text. It is **not rendered on your own row**.
 - **AddAdminDialog** (sm): `addDialog.nameLabel`, `emailLabel`, `passwordLabel` (with show/hide) and
-  hint `passwordHint`. A 409 maps to the email field (`duplicateEmail`). Success toast `added {name}`.
+  hint `passwordHint`. `EMAIL_TAKEN` (409) maps to the email field (`duplicateEmail`). Success toast `added {name}`.
 - **RemoveAdminDialog** (sm): `removeDialog.title {name}`, `body {email}`, and a danger `confirm`.
   Cancel gets initial focus. `CANNOT_DELETE_SELF` and `LAST_ADMIN` show as toasts.
 
@@ -1045,266 +1358,174 @@ Format
 
 ---
 
-## 6. Component inventory
+## 6. Component inventory (v2 look, v1 behaviour)
 
-Class names are suggestions. Every component uses semantic tokens only.
+Class names are suggestions. Every component uses semantic tokens only. The "Component kit" section of
+`docs/design/command-center.html` renders the items marked ★ in their v2 look. Behaviour (states,
+keyboard, ARIA) is unchanged from v1 unless stated.
 
-### Button `.btn`
+### Button `.btn` ★
 - **Variants:**
 
-  | Variant | Background | Text | Hover / active / notes |
+  | Variant | Background | Text | Hover / active |
   |---|---|---|---|
-  | `primary` | `--color-primary` | `--color-on-primary` | Hover `-hover`, active `-active` |
-  | `secondary` | `--color-surface` | `--color-text` | 1px `--color-border-input`; hover `--color-surface-hover` + `--color-border-input-hover` |
-  | `ghost` | transparent | `--color-text-secondary` | Hover `--color-surface-sunken` |
-  | `danger` | `--color-danger-solid` | `--color-on-danger` | Hover `-hover`, active `-active` |
-  | `inverse` | white | `--color-danger-text` | Only on the red banner |
-  | `nav` | transparent | `--color-nav-text` | On asphalt; hover `--color-nav-hover-bg` |
+  | `primary` | Gradient `--c-blue-500 → --color-primary`, inner top highlight, blue drop `0 8px 18px -10px` | `--color-on-primary` | Hover: darker gradient + `--glow-primary`. Active: `--color-primary-active`. |
+  | `secondary` | White 82% glass, 1px `--glass-border-strong`, `--glass-highlight` | `--color-text` | Hover: white, border `--color-primary-border`, text `--color-primary` |
+  | `ghost` | Transparent | `--color-text-secondary` | Hover: `rgb(16 28 46 / .05)` |
+  | `danger` | Gradient `--c-red-500 → --color-danger-solid`, red drop | `--color-on-danger` | Hover: `--color-danger-solid-hover` + `--glow-danger` |
+  | `inverse` | White | `--color-danger-text` | Only on the red banner |
+  | `dark` | Transparent | `--color-dark-text-muted` | Hover: `--color-dark-raised`. For the strip, scanner and tooltips (replaces v1 `nav`). |
 
-- **Sizes:**
-
-  | Size | Height | Padding x | Text | Icon |
-  |---|---|---|---|---|
-  | `sm` | `--control-h-sm` | 12px | `--text-sm` | 16px |
-  | `md` | `--control-h-md` | 16px | `--text-ui` | 16px |
-  | `lg` | `--control-h-lg` | 20px | `--text-base` | 20px |
-
-  Icon-only buttons are square and require an `aria-label`. `.btn--block` makes a button full width.
-- **Style:** weight 600, `--radius-md`, 8px gap between icon and label. Labels are verbs, with no
-  trailing arrows. Pressing changes colour only (`--dur-fast`), never transform.
+- **Sizes:** unchanged (sm/md/lg = `--control-h-*`, text `--text-sm` / `--text-ui` / `--text-base`).
+- **Style:** SG 700, `--radius-md` (10px), 8px icon gap.
+- **Motion:** press changes colour and shadow only (`--dur-fast`).
 - **States:**
-  - `:focus-visible`: 2px outline at 2px offset, `--color-focus`. Use `--color-focus-on-dark` on asphalt and `--color-focus-on-danger` on the banner.
-  - Disabled: `--color-surface-sunken` background, `--color-text-disabled` text, transparent border, `cursor: not-allowed`, no hover.
-  - Loading: a 16px spinner replaces the leading icon, the label stays, `aria-busy="true"`, clicks are ignored, and the width stays stable.
+  - Focus: 2px outline at 2px offset (`--color-focus`; cyan on dark; white on danger).
+  - Disabled: sunken background, `--color-text-disabled`, no shadow.
+  - Loading: spinner + label, `aria-busy`.
 
-### Field / Input / Select / Textarea / Date / Checkbox / Switch
-- **Field anatomy:**
-  - Label: `--text-sm` 600. Optional fields add "(`common.optional`)" in muted 400. Don't use asterisks; use the `required` attribute.
-  - 6px gap, then the control.
-  - 6px gap, then the hint (`--text-sm`, muted) **or** the error (`--text-sm`, `--color-danger-text`,
-    `CircleAlert` 14px). The error replaces the hint.
-  - 20px between fields. Link hint and error to the control with `aria-describedby`, and set `aria-invalid` on error.
+### Field / Input / Select / Textarea / Date / Checkbox / Switch ★
+- **Anatomy and rules:** as in v1. Labels are SG 700 `--text-sm`; hints and errors are Inter `--text-sm`.
 - **Input:**
-  - Height `--control-h-md`, 12px side padding, `--text-base`.
-  - 1px `--color-border-input`, `--radius-md`, `--color-surface` background, `--color-placeholder` placeholder.
-  - Hover: border `-hover`.
-  - Focus: `--color-primary` border plus a 2px `--color-focus` outline at 1px offset.
-  - Error: `--color-danger-solid` border. On focus the border stays red and the outline stays blue.
-  - Disabled: sunken background, muted text.
-  - Read-only: `--color-bg` background with a `--color-border` border.
-  - Optional leading icon (Search, 16px) at left 12px; the input then gets 36px left padding.
-- **Select:** native, `appearance: none`, with a `ChevronDown` 16px at right 12px and 36px right padding.
-- **Textarea:** min height 88px, vertical resize, 10px vertical padding. A counter (`--text-xs`, muted,
-  right-aligned, "420 / 500") appears at ≥ 80% of the maximum and turns danger colour past it.
-- **Date:** native `type="date"` / `datetime-local` with `min` and `max`. The browser shows its own
-  locale format, which is acceptable for the MVP.
-- **Checkbox:** native, 18px, `accent-color: var(--color-primary)`. The label (`--text-ui`) sits to
-  the right, with the hint below the label.
-- **Switch:**
-  - `<button role="switch" aria-checked>`: a 36 × 20 pill track with a 1px border and a 14px thumb
-    (`--shadow-xs`). The thumb moves over `--dur-fast`. The label is clickable.
-  - Light surfaces: off uses `--color-switch-track-off` / `-border-off` / `-thumb-off`; on uses
-    `--color-switch-track-on` (border same colour) / `-thumb-on`.
-  - On asphalt (sidebar): the `*-dark` variants. On is a yellow track with an asphalt thumb, matching the lane marker.
-  - State is never colour-only: the thumb position changes too.
+  - White 90% glass, 1px `--color-border-input`, `--radius-md`, `--shadow-xs`, Inter `--text-base`.
+  - Hover: `--color-border-input-hover`.
+  - **Focus:** border `--color-primary` + `box-shadow: 0 0 0 1px var(--color-primary), 0 0 0 5px rgb(49 107 255 / .16)`.
+    That gives a 2px ring plus a halo, and replaces the v1 outline for inputs.
+  - Error: `--color-danger-solid` border; on focus, the same ring in red.
+- **Select:** as in v1, chevron colour `--color-text-muted`.
+- **Textarea:** as in v1.
+- **Switch:** 38×22 track, 14px thumb. On: `--color-switch-track-on` + a soft blue glow. On dark
+  surfaces, use the `*-dark` tokens (the on state is a cyan track with a night thumb).
+- **Checkbox:** as in v1.
 
-### SegmentedControl
-- **Markup:** `<fieldset>` + `<legend>`, with native radios visually hidden and styled labels. Arrow-key navigation comes for free.
-- **`compact`** (filters, forms):
-  - Container: `--color-surface-sunken` background, 2px padding, `--radius-md`, height `--control-h-sm`.
-  - Option: 12px side padding, `--text-sm` 600, `--color-text-muted`.
-  - Selected: `--color-surface` background, `--color-text`, `--shadow-xs`.
-  - Focus ring sits on the option, via `:has(:focus-visible)`.
-- **`card`** (public request type):
-  - Two cards side by side, stacked below 480px.
-  - Each card: 16px padding, 1px `--color-border-input`, `--radius-lg`, a 24px icon, the title in
-    `--text-md` 600 and the description in `--text-sm` muted.
-  - Selected: 2px `--color-primary` border (reduce padding by 1px to compensate),
-    `--color-primary-subtle` background, and a 20px `CircleCheck` in the top-right corner.
-- **`dark`** (LanguageSwitcher in the sidebar): `--color-nav-control-bg` container, options in
-  `--color-nav-text`; the selected option uses `--color-nav-control-selected-bg` with `--color-nav-text-active`.
+### SegmentedControl ★
+- **`compact`:** sunken container with an inner shadow, 3px padding; options SG 700 `--text-sm`. The
+  selected option is a white pill with `--shadow-sm` and an inner top highlight.
+- **`card`** (public request type): glass cards, `--radius-lg`. Selected: 2px `--color-primary` border,
+  `--color-primary-subtle`, `CircleCheck`, plus `--glow-primary`.
+- **`dark`** (LanguageSwitcher in the strip): `--color-nav-control-bg` container; the selected option is
+  `--color-nav-control-selected-bg` with `--color-dark-text`.
 
-### StatusBadge `.badge`
-- **Anatomy:** a 14px icon (`aria-hidden`) plus text. Height 22px, 8px side padding, `--radius-sm`,
-  `--text-xs` 600, 1px border in the tone's border colour, tone background and text.
-- **Icon and text are always both shown.** Colour alone never carries the status.
+### StatusBadge `.badge` ★
+- **Anatomy:** a 13px icon + text, 22px high, 8px padding, `--radius-sm`, SG 700 `--text-xs`. Tone
+  background with an **inset** 1px tone border (`box-shadow`, so badge heights stay exact).
+- **Mapping:** the v1 table is unchanged.
+- **New tone `live`** (`--color-live-subtle` / `--color-live-text`, `Car` icon): used for "Parked {duration}"
+  in the palette and dossier.
 
-| Value | Tone | Icon | Label key |
-|---|---|---|---|
-| permit `pending` | warning | `Clock` | `common.permitStatus.pending` |
-| permit `approved` | success | `CircleCheck` | `common.permitStatus.approved` |
-| permit `rejected` | neutral | `CircleX` | `common.permitStatus.rejected` |
-| permit `revoked` | neutral | `Ban` | `common.permitStatus.revoked` |
-| alarm `open` | danger | `Siren` | `common.alarmStatus.open` |
-| alarm `resolved` | neutral | `Check` | `common.alarmStatus.resolved` |
-| allowed (`authorized: true`) | success | `ShieldCheck` | `common.access.authorized` |
-| denied (`authorized: false`) | danger | `ShieldAlert` | `common.access.unauthorized` |
-| `unauthorized_entry` | danger | `ShieldAlert` | `common.alarmType.unauthorized_entry` |
-| `overstay` | danger | `TimerOff` | `common.alarmType.overstay` |
-| session without permit | danger | `ShieldAlert` | `common.noPermit` |
-| still parked | neutral | `Car` | `common.stillParked` |
-| valid today (text variant) | success text, 8px dot | – | `common.validToday` |
+### CountBadge ★
+- As in v1, with SG 700 `--text-2xs`, tabular.
+- The danger tone adds a red glow (`0 0 14px rgb(240 68 58 / .5)`).
+- It bumps on increase (§13).
 
-### CountBadge
-- A pill: min-width 20px, height 20px, 6px side padding, `--text-xs` 700, tabular, `--tracking-wide`.
-- **Tones:**
-  - danger: `--color-danger-solid` with white text.
-  - warning: `--color-warning-pill-bg` / `--color-warning-pill-text`.
-  - neutral: `--color-neutral-bg` / `--color-neutral-text`.
-- Hidden at 0. The number is `aria-hidden`; the parent link or tab carries the plural label.
+### PlateChip `.plate` ★ (the signature)
 
-### PlateChip `.plate`, the signature element
-- **Props:** `plate` (normalized) **or** `display`; `size`: `sm | md | lg | xl` (default `md`);
-  `interactive` (renders a `<button>`).
-- **Always white with black characters**, on any surface (tables, the red banner, toasts).
-- Never truncate: plates are at most 12 characters plus spaces. Add `translate="no"`.
-- Where no column header gives context (banner, toasts, dialog headers), prefix a visually hidden
-  `common.fields.plate`.
+**Look:**
+- Swiss plate: `--plate-fill` (white → paper gradient), 1px `--plate-edge`, and an inset rim (a
+  `--plate-bg` gap ring plus a 1px `--plate-rim` ring).
+- SG 700, `--plate-tracking`, tabular numerals, `--plate-shadow`.
+- **Swiss shield** (`::before`, inline SVG: red shield with a white cross) at md, lg and xl, only when
+  the plate matches the Swiss canton format (`^[A-ZÄÖÜ]{2}\d{1,6}$`). Hidden at sm.
+- The chip is always light, on every surface.
 
+**Reticle:** `<i class="reticle">` inside the chip. It is the ANPR lock-on corners, drawn as a 2px
+border masked to its four corners:
 ```css
-.plate {
-  display: inline-flex; align-items: center; white-space: nowrap; vertical-align: middle;
-  height: var(--plate-md-h); padding-inline: var(--plate-md-pad);
-  font-family: var(--plate-font); font-weight: var(--plate-weight);
-  font-size: var(--plate-md-font); line-height: 1;
-  letter-spacing: var(--plate-tracking); text-transform: uppercase;
-  font-variant-numeric: tabular-nums lining-nums;
-  color: var(--plate-ink); background: var(--plate-bg);
-  border: 1px solid var(--plate-edge); border-radius: var(--plate-md-radius);
-  /* white gap, then the inset rim line, then a hairline lift */
-  box-shadow: inset 0 0 0 var(--plate-rim-gap) var(--plate-bg),
-              inset 0 0 0 calc(var(--plate-rim-gap) + 1px) var(--plate-rim),
-              var(--plate-shadow);
-}
-.plate--sm { height: var(--plate-sm-h); padding-inline: var(--plate-sm-pad);
-             font-size: var(--plate-sm-font); border-radius: var(--plate-sm-radius);
-             box-shadow: var(--plate-shadow); }            /* no inset rim at sm */
-.plate--lg { height: var(--plate-lg-h); padding-inline: var(--plate-lg-pad);
-             font-size: var(--plate-lg-font); border-radius: var(--plate-lg-radius); }
-.plate--xl { height: var(--plate-xl-h); padding-inline: var(--plate-xl-pad);
-             font-size: var(--plate-xl-font); border-radius: var(--plate-xl-radius);
-             --plate-rim-gap: 3px; }
-button.plate:hover { --plate-rim: var(--color-primary); --plate-edge: var(--color-primary); }
+mask: conic-gradient(at var(--reticle-size) var(--reticle-size), #0000 75%, #000 0)
+      0 0 / calc(100% - var(--reticle-size)) calc(100% - var(--reticle-size));
 ```
+It sits `--reticle-gap` outside the chip. Its hidden state is `opacity: 0; scale: 1.2`.
 
-### PlateInput
-- A text input that looks like a plate. It uses the same edge, rim, font and tracking as PlateChip.
-  - Height `--plate-input-h`, font `--plate-input-font`, `--plate-input-radius`, side padding `--plate-input-pad`.
-  - `md` size (for dialogs and the lookup): height 48px, font 22px.
-- **Value:** uppercased on change and stored as typed (with spaces). Normalize only when validating or submitting.
-- **Attributes:** `autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="20"`.
-- **Placeholder:** `ZH 123 456`, not translated, in `--color-placeholder`.
-- **Focus:** edge and rim become `--plate-input-rim-focus`, plus a 2px `--color-focus` outline at 2px offset.
-- **Error:** edge and rim become `--plate-input-rim-error`.
+**States:**
 
-### KpiStrip / KpiCell
-See §5.6. States:
-- Loading: skeleton value.
-- Error: values show `common.emptyValue`, and a retry InlineAlert appears under the strip.
-- Alert tones: danger or warning, per the table in §5.6.
+| State | When | Visual |
+|---|---|---|
+| Default | Everywhere | As above, reticle hidden |
+| Interactive hover / focus | `interactive` chips (simulator demo plates, palette, dossier links) | Lifts 1px; reticle locks on in blue (`--ease-snap`) |
+| Scanning | Gate feed stage, simulator result while pending | Cyan reticle "hunting" (scale 1.14 ↔ 1.04, 700 ms alternate); beam overlay; scrambled characters |
+| Allowed | Verdict | Green reticle + `--glow-success` |
+| Denied | Verdict, open alarms, dialogs about an unauthorized car | Red reticle + `--glow-danger` |
+| Muted | History: car left, revoked, rejected context | `--plate-muted-opacity`, no drop shadow |
 
-### ResponsiveTable
-- At ≥ 720px it renders a `<table>`; below that, a `<ul>` of cards (via `useMediaQuery`). Column defs
-  declare `cardSlot: 'title' | 'badge' | 'body' | 'meta' | 'action' | 'hidden'`.
-- **Table:**
-  - Header row: `--color-surface-sunken`, `<th scope="col">` in `--text-sm` 600 muted, 40px tall, sticky inside its scroll container.
-  - Cells: 12px × 16px padding, `--text-ui`, 1px `--color-border-subtle` bottom border.
-  - Numeric and duration cells are right-aligned and tabular.
-- **Clickable rows:** hover `--color-surface-hover` and a pointer cursor. The row contains a real
-  button or link, and a row click delegates to it. Never put `role="button"` on a `<tr>`.
-- **Card:** 16px padding with a border between cards. Layout: title slot and badge slot on one row,
-  then body lines, then meta (`--text-sm`, muted), then the action row.
-- **States:** 5 skeleton rows or cards while loading; EmptyState inside the Panel when empty; Pagination below the Panel.
+**Other rules:**
+- Sizes: `sm`/`md`/`lg`/`xl` via `--plate-*` tokens. The rim is removed at sm.
+- The state is never colour-only: the verdict or badge text next to the chip carries the meaning.
+- `translate="no"`, never truncated. Visually hidden `common.fields.plate` prefix where context is missing (v1).
 
-### Panel
-- `--color-surface` background, 1px `--color-border`, `--radius-lg`, **no shadow**.
-- Optional header: h2 in display 600 `--text-md` with an optional right-side action. 16px × 20px
-  padding and a 1px `--color-border-subtle` bottom border.
-- Body padding is 20px, or 0 for tables and lists. List rows use 12px × 20px padding with subtle dividers.
+### PlateInput ★
+- The same plate look (with the shield at the left), `--plate-input-*` tokens, uppercase.
+- **Focus:** edge and rim turn `--plate-input-rim-focus`, plus a 4px blue halo, and the reticle locks on
+  around the input (14px corners, 7px gap).
+- **Error:** `--plate-input-rim-error`.
+- Attributes and behaviour: as in v1.
 
-### Dialog
-- **Markup:** native `<dialog>` with `showModal()`, which provides the focus trap, Esc and inert
-  background. `::backdrop` uses `--color-overlay`.
-- **Style:** width `--dialog-w-sm` or `--dialog-w-md`, max height 85vh, scrolling body, `--radius-lg`,
-  `--shadow-lg`, 24px padding.
-- **Header:** title h2 (display 600 `--text-lg`) with a close icon button (`X`,
-  `common.actions.close`) at the top right. Wire `aria-labelledby` and `aria-describedby`.
-- **Footer:** right-aligned with a 12px gap, secondary first and primary last.
-- **Focus:** initial focus goes to the first field. For destructive confirmations it goes to
-  **Cancel**. On close, focus returns to the trigger.
-- **Closing:**
-  - A backdrop click closes the dialog only when the form is not dirty.
-  - While submitting, Esc and close are blocked (prevent the `cancel` event).
-- **Motion:** fade plus a `--motion-distance` rise, over `--dur-base` `--ease-out`.
-- **Below 720px it becomes a bottom sheet:** full width, anchored to the bottom, top corners
-  `--radius-xl`, full-width footer buttons stacked with the primary on top, bottom padding including
-  the safe-area inset.
+### Panel / Instrument ★
+- **Panel:** the glass recipe in §1.3; header title SG 700 `--text-md`; body padding `--cc-panel-pad` (20px).
+- **Instrument** = Panel + registration marks (8 background layers: L-ticks at the four corners, 8px
+  inset, `--reg-mark`) + the `spot` cursor spotlight (§13). It is used on the command center only.
+- **Dark instrument** (Gate feed only): §5.6.
 
-### Toast
-- `--color-surface` background with a 1px border, a 4px left bar in the tone's solid colour,
-  `--shadow-md`, `--radius-lg`, 12px × 16px padding, max width 420px, `z-index: var(--z-toast)`.
-- Content: a 20px icon in the tone colour, text in `--text-ui`, an optional action link (600) and a close button.
-- Tones: success, info, warning, danger. Timing and roles are in §2.6.
+### Dialog ★
+- Native `<dialog>`; behaviour as in v1.
+- Look: `--glass-bg-strong`, `--radius-xl`, `--shadow-lg` + `--glass-highlight`.
+- `::backdrop`: `--color-overlay` + `blur(6px) saturate(120%)`.
+- The subject strip (e.g. the plate being resolved) sits in a tinted glass box at the top: red tint for alarms.
+- Enter: fade + rise + blur-in (`--motion-blur`) over `--dur-base`.
+- Mobile sheet: as in v1.
 
-### AlarmBanner
-See §4.2.
+### Toast ★
+- Glass strong, `--radius-lg`, `--shadow-md`.
+- A 3px left bar in the tone's solid colour **with a glow**; a 20px tone icon; title SG 700; body Inter muted.
+- Enter: rise 12px + fade (`--dur-base`). Exit: slide right + fade.
+- Stack, timing and roles: as in v1.
 
-### InlineAlert
-- **Tones:** info, success, warning, danger. Tone background with a 1px tone border, `--radius-md`,
-  12px padding, and text in the tone's text colour.
-- **Icons (18px):** `Info`, `CircleCheck`, `TriangleAlert`, `CircleAlert`.
-- **Size `sm`:** `--text-sm`, 8px × 12px padding.
-- Optional action link.
-- `role="alert"` only for errors that appear after a submit.
+### Tooltip (new)
+- Dark accent: night 94% + `blur(8px)`, `--radius-md`, 1px dark border, `--shadow-lg`, `--z-tooltip`.
+- Shown on hover (after 150 ms) **and** on keyboard focus. Esc hides it.
+- Positioned above the target; flips below when there's less than 52px of space; clamped 8px from the edges.
+- `role="tooltip"`, referenced by `aria-describedby`. Never the only place for essential information.
 
-### EmptyState
-- Centred in its Panel, 40px vertical padding.
-- Icon at `--icon-xl` in `--color-text-disabled`, or in the tone colour for success and error.
-- Title in display 600 `--text-md`; body in `--text-sm` muted, max 44ch; optional secondary button.
-- Variant `error` (§2.6).
+### CommandStrip (new)
+- Layout and slots: §3.3.
+- Surface: a `--c-night-850 → --color-dark-bg` gradient; a bottom hairline gradient (transparent → cyan
+  → blue → transparent); a soft drop shadow.
+- Readouts: 26px pills, SG 700 `--text-2xs` uppercase `--tracking-readout`, 1px dark border.
+- Chips (alarm, autopilot) use tinted glass in their colour, a coloured border and a text glow.
 
-### Tabs
-- URL-driven links inside `<nav aria-label="…">`, with `aria-current="page"` on the active tab. Don't use ARIA tabs.
-- Row: 1px bottom border.
-- Tab: 10px vertical padding, 24px gap between tabs, `--text-ui` 600, muted.
-- Active tab: `--color-text` with a 2px `--color-primary` underline that overlaps the row border.
-- CountBadges sit inside the tab. The row scrolls horizontally on overflow.
+### Reticle (new, shared)
+- One component (`<Reticle tone="blue|cyan|green|red|muted" size gap />`) used by PlateChip,
+  PlateInput, lot tiles, the scanner stage viewfinder (static, 16px corners, cyan 35%) and focused
+  palette plates.
+- `aria-hidden`.
 
-### Pagination
-- `common.pagination.range` (`--text-sm`, muted) on the left.
-- On the right, two secondary sm icon buttons (`ChevronLeft` / `ChevronRight`) labelled with
-  `common.pagination.previous` / `next`.
-- Hidden when `total ≤ limit`.
+### GuidancePlaque (new)
+- The dark "P 17 free" sign (§5.6). 30px high: blue P square, green glowing SG 700 digits, label.
+- `title` is `dashboard.gauge.freeLabel`.
 
-### CopyField
-- The value in mono, inside a box with `--color-surface-sunken` background and `--radius-md`.
-- A secondary sm Copy button (`Copy` icon). After copying it shows `Check` + `common.actions.copied`
-  for 2 s, announced via a polite live region.
-- Uses `navigator.clipboard`; the fallback selects the text.
+### KpiTile, OccupancyGauge, LotMap, GateFeed, GateSensor, ActivityTimeline, OpenAlarmsList (new)
+Specified in §5.6. Each is a self-contained component with its own query, skeleton and error state.
 
-### LiveIndicator, LanguageSwitcher, Spinner, Skeleton, RelativeTime, DescriptionList
-- **LiveIndicator:** see §4.1. The amber dot pulses opacity every 2 s; the pulse is off under reduced motion.
-- **LanguageSwitcher:**
-  - Compact SegmentedControl labelled `common.language.label`.
-  - Options show `common.language.shortEn` / `shortDe`, with `aria-label` giving the full name and `lang` set on each option.
-  - Changing it sets the i18n language, `localStorage` and `<html lang>`.
-- **Spinner:** a 16 or 20px ring with a 2px `currentColor` stroke, rotating every 700 ms. It indicates
-  essential progress, so it stays under reduced motion.
-- **Skeleton:** see §2.6.
-- **RelativeTime:** see §2.2.
-- **DescriptionList:** `<dl>` grid with the `dt` column at 160px (`--text-sm`, muted) and `dd` in
-  `--text-ui`. Stacked below 480px.
+### CommandPalette, PlateDossier (new)
+§9 and §10.
+
+### Unchanged in look beyond tokens
+InlineAlert, EmptyState, Tabs, Pagination, CopyField, DescriptionList, Skeleton, Spinner, RelativeTime,
+ResponsiveTable. They pick up the new fonts, radii and colours through tokens. Specifics:
+- **Tabs:** the active underline gets `--glow-marker`.
+- **Tables:** the header is a sunken 60% glass row; hovered rows get a 3px blue inset bar on the first cell.
+- **CopyField:** uses SG 700 for reference codes; `--font-mono` only for URLs.
+- **EmptyState:** icons sit in a 56px ring (success: green ring with `--glow-success`).
 
 ---
 
 ## 7. Accessibility (WCAG 2.2 AA)
 
 - **Contrast:** the token pairs are verified (see the `tokens.css` header). Never put
-  `--color-text-subtle` on sunken surfaces, and never use yellow text on light surfaces.
+  `--color-text-subtle` on sunken surfaces, and never use `--color-live` (cyan) as text on light surfaces; use `--color-live-text`.
 - **Status is never colour-only:** badges always pair icon and text. Alert KPI cells add an icon and
   wording. Allowed and denied results carry distinct icons and titles.
 - **Focus:**
-  - Style: `:focus-visible` with a 2px outline at 2px offset: blue on light surfaces, yellow on asphalt, white on the red banner.
+  - Style: `:focus-visible` with a 2px outline at 2px offset: blue on light surfaces, cyan on dark accent surfaces, white on the red banner.
   - Never remove an outline without a replacement.
   - Focus Not Obscured (2.4.11): add `scroll-padding-top` (banner height plus the top bar) and
     `scroll-padding-bottom` (`--tabbar-h`) so sticky bars never cover focused elements.
@@ -1324,13 +1545,28 @@ See §4.2.
   - Hints and errors are linked with `aria-describedby`; invalid fields get `aria-invalid`.
   - Error summary with `role="alert"`; focus moves to the first invalid field.
 - **Target size (2.5.8):** controls are ≥ 32px, and ≥ 44px on coarse pointers (tokens). Icon buttons are 40/44px.
-- **Motion:** every movement uses tokens that collapse under `prefers-reduced-motion`. No looping
-  animation except the progress spinner.
+- **Motion:** every movement uses tokens that collapse under `prefers-reduced-motion`. The looping
+  ambient animations are listed in §13. All of them stop under reduced motion; only the progress spinner keeps turning.
 - **Language:** `<html lang>` follows the switcher.
 - **Time:** use `<time dateTime>` with the full date in `title`.
 - **Reflow:** usable at 320px width and 400% zoom. Tables turn into cards below 720px, so the page
   never scrolls horizontally.
 - **Plates in speech:** plates read as text ("ZH 123 456"). Add the visually hidden "Plate" prefix where context is missing.
+- **v2 additions:**
+  - **Focus colours:** blue on light surfaces; **cyan** (`--color-focus-on-dark`) on the strip, gate
+    feed and tooltips; white on the red banner.
+  - **Takeover:** never moves focus. It stays under the flash thresholds (2.3.1): two pulses over
+    2.4 s, edges only. Reduced motion shows a static state.
+  - **Command palette:** combobox/listbox pattern (§9). Focus returns to the invoker on close.
+  - **Lot tiles:** real `<button>`s with full accessible names. Tooltips also appear on focus. The
+    map has a text alternative: the Parked now KPI and the Activity page.
+  - **Charts:** gauge, sparklines and timeline carry `role="img"` with a text summary. The timeline
+    also has a visually hidden table.
+  - **Readouts:** the uppercase comes from CSS, so screen readers read the sentence-case copy.
+  - **Glass legibility:** body text only on `--glass-bg` (≥ 0.72 alpha) or stronger. Without
+    `backdrop-filter`, glass falls back to near-opaque (tokens `@supports`).
+  - **Continuous motion** (radar, light fields, autopilot stripes, pulses) stops under reduced motion
+    and while the tab is hidden. Wall mode adds no motion of its own beyond the residual alarm glow.
 
 ---
 
@@ -1338,51 +1574,343 @@ See §4.2.
 
 - **Storage keys:**
 
-  | Key | Storage |
-  |---|---|
-  | `parklens.lang` | localStorage |
-  | `parklens.alarmSound` | localStorage |
-  | `parklens.simGate` | localStorage |
-  | Auth token (developer's choice, e.g. `parklens.token`) | localStorage |
-  | `parklens.dismissedAlarms` | sessionStorage |
-  | `parklens.simResults` | sessionStorage |
+  | Key | Storage | Since |
+  |---|---|---|
+  | `parklens.lang` | localStorage | v1 |
+  | `parklens.alarmSound` | localStorage | v1 |
+  | `parklens.simGate` | localStorage | v1 |
+  | Auth token (e.g. `parklens.token`) | localStorage | v1 |
+  | `parklens.recentPlates` (max 5 normalized plates) | localStorage | v2 |
+  | `parklens.dismissedAlarms` | sessionStorage | v1 |
+  | `parklens.simResults` | sessionStorage | v1 |
+  | `parklens.autopilot` (`{on, pace, startedAt, sent, alarms}`) | sessionStorage | v2 |
+  | `parklens.wall` (`"1"` while in wall mode) | sessionStorage | v2 |
 
-- **Breakpoints** (use literal values in `@media`):
+- **Breakpoints** (literal values in `@media`):
 
   | Width | Changes |
   |---|---|
-  | 480px | Stack card segments and description lists |
-  | 720px | Tables become cards, dialogs become sheets, KPI grid switches to 2 columns |
-  | 960px | Sidebar ↔ top bar + tab bar |
-  | 1080px | Dashboard and simulator switch to 2 columns, KPI strip to 5 columns |
+  | 480px | Stack card segments and description lists; strip alarm chip shows the count only |
+  | 720px | Tables become cards, dialogs become sheets, command center goes to 1 column, KPIs scroll horizontally |
+  | 960px | Sidebar ↔ tab bar; strip ↔ mobile top bar (`--strip-h` becomes 52px via tokens); wall mode available |
+  | 1280px | Command center switches to its 12-column layout |
+  | 1500px | Strip shows the gates readout and the clock's place name |
 
 - **Query keys:**
 
   | Key | Params |
   |---|---|
   | `['summary']` | – |
+  | `['timeline']` | – (v2) |
+  | `['gates']` | – (v2) |
+  | `['health']` | – (v2, strip system readout) |
   | `['alarms', params]` | Filter params |
   | `['sessions', params]` | Filter params |
   | `['gate-events', params]` | Filter params |
   | `['permits', params]` | Filter params |
+  | `['plate', normalizedPlate]` | Dossier bundle (v2) |
   | `['settings']` | – |
   | `['admins']` | – |
   | `['public-request', token]` | Request token |
 
-  SSE invalidation matches on the first key segment.
+  SSE invalidation matches on the first key segment (§4.1).
 
-- **Base CSS the developer adds** (not part of the tokens file):
-  - `body { font-family: var(--font-sans); background: var(--color-bg); color: var(--color-text); }`
-  - Admin body text uses `--text-ui`/`--leading-ui`; public body text uses `--text-base`/`--leading-base`.
-  - `-webkit-font-smoothing: antialiased`.
-  - `.sr-only`.
-  - A global `:focus-visible` rule.
-- **Icons** (lucide-react): 16px in controls, 20px in navigation and toasts, 24px in banners and
-  panels, 32px in empty states. All decorative icons get `aria-hidden`. Key icons:
-  - Navigation: `LayoutDashboard`, `Siren`, `Inbox`, `BadgeCheck`, `ArrowRightLeft`, `ScanLine`, `Settings`, `DoorOpen`.
-  - Status: `Clock`, `CircleCheck`, `CircleX`, `Ban`, `Check`, `ShieldCheck`, `ShieldAlert`, `TimerOff`, `CalendarX`.
-  - Alerts: `TriangleAlert`, `CircleAlert`, `Info`.
-  - Content and actions: `Car`, `CalendarDays`, `LogIn`, `LogOut`, `Shuffle`, `Send`, `Copy`, `Plus`, `Search`, `Eye`, `EyeOff`, `Minus`, `Ellipsis`.
-  - Navigation arrows and close: `ChevronLeft`, `ChevronRight`, `ChevronDown`, `X`.
-- **Demo readiness:** with seed data, the first login shows the red banner for `ZH 999 999`,
-  alarm badge 1, requests badge 2 and a red "Open alarms" KPI. That is the intended first impression.
+- **motion (`motion/react`):**
+  - Wrap the app in `<MotionConfig reducedMotion="user">`.
+  - `AnimatePresence`: toasts, banner, palette, dossier, feed rows, alarm items, lot tiles.
+  - `layout`: feed list, alarm list, request queue.
+  - Numbers: `animate(motionValue, to, { duration: 1.1, ease: [0.16, 1, 0.3, 1] })` rendered through
+    `useTransform` + `Intl.NumberFormat`, with no React state per frame.
+  - Springs: enter `{ stiffness: 380, damping: 32 }`, layout `{ stiffness: 500, damping: 40 }`.
+  - CSS keeps the infinite ambient loops (radar, light fields, pings, stripes), because they cost nothing in React.
+
+- **Performance budget** (office laptop, 60 fps; wall mini-PC ≥ 45 fps):
+  - Animate only `transform`, `opacity` and (once, for draw-on) `stroke-dashoffset`. Never animate
+    `box-shadow` or `filter`: pre-render glow layers and fade their opacity.
+  - At most about 12 `backdrop-filter` surfaces on screen. Never blur list rows or table cells.
+  - Infinite animations pause while the document is hidden (`html.is-hidden { animation-play-state: paused }`)
+    and while off-screen (IntersectionObserver on the radar and the timeline halo).
+  - **Low-effects fallback:** in wall mode, measure frame rate over 2 s after load. Below 45 fps, set
+    `html[data-lowfx]`, which removes backdrop blur (opaque glass), the light-field drift and the
+    spotlight. Keep all data motion.
+  - No canvas or WebGL is needed: gauge, sparklines and timeline are SVG; radar and ambient layers are CSS.
+
+- **Base CSS** (not in the tokens file):
+  - `body`: Inter 400, `--color-bg`.
+  - Admin text `--text-ui`, public text `--text-base`.
+  - `.sr-only`, a global `:focus-visible`.
+  - The ambient layer (fixed, `z-index: 0`; the shell uses `position: relative; z-index: 1`).
+  - `html.is-hidden` pause rule.
+  - The `@media (prefers-reduced-motion)` block that stops the loops (the prototype's last CSS section).
+
+- **Icons** (lucide-react): the v1 set, plus these v2 additions: `Navigation` (autopilot),
+  `Maximize` / `Minimize` (wall), `Volume2` / `VolumeX` (sound), `ArrowDownLeft` / `ArrowUpRight`
+  (feed direction), `History` (dossier), `Globe` (language action), `CornerDownLeft` (palette hint),
+  `Activity` (system). `DoorOpen` moves into the avatar menu (log out).
+
+- **Demo readiness:** with the v2 seed, the first login shows about 23 of 40 parked, a full morning
+  timeline, both gates active, and `ZH 999 999` as a red tile, a KPI alert and an open-alarm item. The
+  banner shows unless dismissed this session. Start autopilot from the palette or the simulator for a
+  live demo.
+
+---
+
+## 9. Command palette (⌘K / Ctrl+K)
+
+**Open:**
+- ⌘K (macOS) or Ctrl+K anywhere in the admin area, including while typing. The same shortcut toggles it closed.
+- `/` when focus is not in an editable field.
+- The strip's search button.
+- On mobile, the top-bar search icon.
+- It does not open while a modal dialog is open.
+
+**Layout** (desktop): a centred panel, `--palette-w` (680px), 12vh from the top, `--glass-bg-strong`,
+`--radius-xl`, `--shadow-lg` plus a 6px white 25% halo. The scrim is `--color-overlay` with a 6px blur.
+- **Input row:** 60px, `Search` icon in primary blue, Inter `--text-md`, `Esc` kbd.
+- **Results:** scrollable, max 460px.
+- **Footer:** kbd hints (`palette.hints.*`) and the result count (polite live region).
+- **Mobile:** a full-screen sheet.
+
+**Groups and items** (in this order):
+
+| Query | Groups |
+|---|---|
+| Empty | `palette.groups.recent` (up to 5 recent plates) · `palette.groups.pages` (7 nav pages) · `palette.groups.actions` |
+| Any text | `palette.groups.plates` (when the normalized query has ≥ 2 characters) · pages matching · actions matching · `palette.groups.search` (always: `palette.searchPermits`, `palette.searchLog`) |
+
+**Plate search:**
+- Debounce 200 ms. Normalize the query (v1 §2.1).
+- Run three requests in parallel: `GET /api/permits?q=`, `GET /api/sessions?active=true&plate=`,
+  `GET /api/alarms?status=open&plate=`, each with `limit=10`.
+- Merge by exact normalized plate and show at most 6. The API matches substrings, so that is expected.
+- **Row:**
+  - PlateChip sm with the matched characters highlighted (`<mark>`, cyan 18%).
+  - Title: holder name, or `palette.plate.unknown`.
+  - Badges: `palette.plate.parked {duration}` (live), permit type or `palette.plate.noPermit`,
+    `palette.plate.pending`, `palette.plate.openAlarms_*`.
+- **Loading:** `palette.searching` as a skeleton row.
+- **Error:** an inline row `errors.NETWORK`.
+
+**Actions** (label keys `palette.actions.*`; hidden when not applicable):
+
+| Label | Action |
+|---|---|
+| `newPermit` | Opens CreatePermitDialog (prefilled plate if the query is a plate) |
+| `simulateCheckIn` / `simulateCheckInPlate {plate}` | → `/admin/simulator?plate=` |
+| `autopilotStart` / `autopilotStop` | Toggles autopilot (§12) |
+| `wallEnter` / `wallExit` | Toggles wall mode (§11); ≥ 960px only |
+| `language {language}` | Switches language |
+| `soundOn` / `soundOff` | Toggles alarm sound |
+| `logout` | Logs out |
+
+Pages use `palette.pageDesc` as their description. Matching compares the label and description
+case-insensitively. Highlight the matched substring.
+
+**Selecting:**
+- Plate → PlateDossier (§10), and add the plate to recents.
+- Page → navigate.
+- Search → navigate with the filter (`/admin/permits?q=`, `/admin/activity?tab=log&plate=`).
+- Action → run it.
+
+The palette closes before navigating.
+
+**Keyboard:**
+
+| Key | Behaviour |
+|---|---|
+| ↑ / ↓ | Move the active option (wraps); it scrolls into view |
+| Enter | Run the active option |
+| Esc | Close (focus returns to the invoker) |
+| Tab | Stays in the input (modal) |
+| Mouse | Hover sets the active option; click runs it |
+
+**Active item:** `--color-primary-subtle` with a 1px primary-border ring, a glowing 3px marker bar on the
+left, and a white icon tile in blue. A `↵` kbd appears on the right.
+
+**A11y:**
+- `role="dialog"` with `aria-modal` and `aria-label` `palette.label`.
+- The input is `role="combobox"` with `aria-expanded="true"`, `aria-controls` pointing at the listbox,
+  and `aria-activedescendant`.
+- The results are `role="listbox"`; groups are `role="group"` with `aria-labelledby`; options are `role="option"` with `aria-selected`.
+- The result count is announced politely (`palette.results_*`).
+- No results: `palette.noResults {query}` + `palette.noResultsHint`.
+
+---
+
+## 10. Plate dossier (new)
+
+A right-side drawer showing everything about one plate. It opens from lot tiles, palette plate results,
+PlateChips in alarm and activity rows (as `interactive` chips), and the deep link `?dossier=<normalized plate>`
+on any admin route.
+
+- **Surface:** `<dialog>` drawer, `--drawer-w` (440px), full height below the strip, glass strong,
+  `--radius-xl` on the left corners. It slides in from the right (spring). Mobile: full-screen sheet.
+- **Header:** PlateChip xl (with the denied state if an open alarm exists), holder name (or
+  `palette.plate.unknown`), and a status line: `dossier.status.parked {time, duration}`, or
+  `dossier.status.notParked` plus `dossier.status.lastSeen {time}`. Close button top-right.
+- **Sections:**
+
+  | Section | Source | Content | Empty |
+  |---|---|---|---|
+  | `dossier.sections.permits` | `GET /api/permits?q=` | Permits with StatusBadge, type/date and source; the row opens PermitDetailsDialog | `dossier.empty.permits` |
+  | `dossier.sections.visits` | `GET /api/sessions?plate=&limit=5` | `dossier.visit.parked` / `dossier.visit.closed`, with duration and an authorized/unauthorized badge | `dossier.empty.visits` |
+  | `dossier.sections.alarms` | `GET /api/alarms?plate=&limit=5` | Alarms with status and a Resolve action on open ones | `dossier.empty.alarms` |
+
+  Filter all three results to the **exact** normalized plate on the client.
+- **Footer actions:**
+  - `dossier.actions.createPermit`: opens CreatePermitDialog prefilled; shown when no approved permit
+    is active today.
+  - `dossier.actions.openLog` → `/admin/activity?tab=log&plate=`.
+  - `dossier.actions.openPermits` → `/admin/permits?q=`.
+- **Data:** a single query key `['plate', plate]` that bundles the three requests. It is invalidated by
+  any SSE event for the same plate.
+
+---
+
+## 11. Wall mode (kiosk)
+
+**Purpose:** the command center on a reception monitor or wall display, readable from about 3 m, with
+no navigation chrome.
+
+**Enter:**
+- The strip's wall button, the command center header button, or the palette action.
+- The URL `/admin?wall=1`, useful for kiosk bookmarks.
+- Wall mode is not available below 960px.
+
+**Behaviour:**
+- Set `html[data-wall]`. Tokens then switch the `--cc-*` sizes and `--strip-h` (56px).
+- Request fullscreen. It needs a user gesture: when opened by URL, show a centred glass button
+  `wall.fullscreenAction` with `wall.fullscreenPrompt`. Leaving fullscreen (Esc) also leaves wall mode.
+- Store `sessionStorage["parklens.wall"]` so a reload stays in wall mode.
+- Hide the sidebar, the page header and page actions, the component-level "View all" links and all
+  toasts except errors. The strip, takeover, tooltips and palette stay. The banner is transient (§4.2):
+  it overlays the KPI row for 10 s after a new alarm, never for pre-existing ones, so the KPIs stay
+  readable; the breathing edge glow remains while alarms are open.
+- Request a Screen Wake Lock where supported, and release it on exit.
+- Hide the cursor after 3 s without pointer movement (`html.is-idle { cursor: none }`).
+- Residual alarm glow while open alarms are undismissed (§4.6).
+- Low-effects fallback (§8).
+
+**Exit:**
+- The strip's labelled button `strip.wallExit` (always visible in wall mode).
+- Esc, which leaves fullscreen.
+- The palette action.
+
+**Layout, 1920×1080** (the `.cc` grid fills the viewport: `height: calc(100vh − strip − 2 × --page-pad-y)`):
+
+```
+┌ strip 56px ─ [P] ParkLens │ ●LIVE [⚠ 1 OPEN ALARM] ●SYSTEM OK 2 GATES ACTIVE ······ [⌕] 14:32:07 Zurich (snd) EN|DE [Exit wall mode] (PA) ┐
+│┌ Open alarms ─────┐┌ Parked now ──────┐┌ Entries today ───┐┌ Requests waiting ┐┌ Valid permits today ┐   KPI row 148px     │
+││ 1          ╱╲_╱  ││ 23 / 40    ╱‾‾   ││ 44     ╱╲_╱‾     ││ 2                ││ 28                  │   values 72px       │
+│└──────────────────┘└──────────────────┘└──────────────────┘└──────────────────┘└─────────────────────┘                    │
+│┌ Occupancy (3) ───────────┐┌ Parked vehicles (6), bays 80×76 ─────────────────────────┐┌ Gate feed (3), rows 2–3, DARK ──┐ │
+││   gauge 320px, value 96px ││                                                          ││ sensors                         │ │
+││   plaque, legend          ││                                                          ││ stage 220px, plate xl           │ │
+│└──────────────────────────┘└──────────────────────────────────────────────────────────┘│ list rows 46px (≈ 8 visible)    │ │
+│┌ Open alarms (3) ─────────┐┌ Today (6) ───────────────────────────────────────────────┐│                                 │ │
+│└──────────────────────────┘└──────────────────────────────────────────────────────────┘└─────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+Areas: `"k×12" / "g×3 l×6 f×3" / "a×3 t×6 f×3"`, rows `var(--cc-kpi-h) minmax(0,1.55fr) minmax(0,1fr)`.
+A new alarm's transient banner overlays the KPI row for 10 s (§4.2).
+
+**Session expiry:** after the 12 h JWT expires the kiosk lands on `/login?from=/admin?wall=1`.
+Logging in restores wall mode (the fullscreen prompt appears).
+
+---
+
+## 12. Simulator autopilot
+
+**Purpose:** generate believable gate traffic for demos, so every effect can be shown without a camera.
+
+**Where:**
+- The toggle lives on `/admin/simulator` (panel spec in §5.11).
+- Palette actions start and stop it.
+- It **runs in the admin shell** (a provider next to the SSE provider), so it keeps going while the
+  admin navigates.
+
+**Indicator:**
+- Strip chip `strip.autopilot` (readout, cyan stripes animating at 1.1 s per cycle; static stripes under
+  reduced motion) with `title` `strip.autopilotHint`. Clicking it opens a popover: `autopilot.title`,
+  pace control, stats, `autopilot.popover.stop`, `autopilot.popover.open`.
+- A cyan dot on the Gate simulator nav item.
+- The chip is only rendered while autopilot runs.
+
+**Algorithm** (every tick; Calm: random 8–15 s, Busy: random 3–6 s):
+1. Inputs:
+   - Permitted plates active today: `GET /api/permits?status=approved&activeToday=true&limit=200`, cached 5 min.
+   - Active sessions: from the `sessions` query.
+   - `capacity`: from `summary`.
+2. Occupancy `r = parked / capacity`. Check-out probability `p = clamp(0.15 + (r − 0.5) × 1.2, 0.05, 0.8)`.
+   Force a check-out when `r ≥ 0.95`; force a check-in when nobody is parked.
+3. **Check-out:** a random active session, preferring authorized ones (unknown cars leave after at least 5 min).
+4. **Check-in:**
+   - With probability 1/12, and at least 60 s since the last one, send an **unknown plate**: a random
+     canton code plus 1–6 digits, not in the permit list. This creates an alarm.
+   - Otherwise, send a permitted plate that isn't currently parked.
+5. Gate: `north` 60%, `south` 40%. If `/dashboard/gates` lists other gates, pick one at random with the
+   same weighting as their `eventsToday`.
+6. Send `POST /api/gate/check-in` or `check-out` with the admin JWT, exactly like the simulator.
+   Results also go into the simulator result list.
+
+**Safety:**
+- At most one request in flight.
+- After 3 consecutive errors, pause and show a danger toast `autopilot.paused {error}`.
+- Stop on logout, token expiry or tab close.
+- It never resolves alarms.
+
+**Persistence:** `sessionStorage["parklens.autopilot"]` keeps `{on, pace, startedAt, sent, alarms}`,
+so a reload resumes it. It never persists across tabs.
+
+**A11y:**
+- Start and stop announce `autopilot.started` / `autopilot.stopped` politely.
+- The generated events get the normal live treatment, and the takeover still announces alarms.
+
+---
+
+## 13. Effects catalogue
+
+All durations and easings are tokens (`--dur-*`, `--ease-*`). "RM" is the behaviour under `prefers-reduced-motion: reduce`.
+
+| # | Effect | Trigger | Spec | Duration / easing | RM fallback | Perf notes |
+|---|---|---|---|---|---|---|
+| 1 | Ambient light fields | Always (admin; public at 0.6 dose) | 3 radial fields (blue, cyan, blue) on a fixed layer, drifting ±2% and scaling up to 1.06 | `--dur-ambient` 48 s, alternate, `--ease-standard` | Static | One fixed layer, `transform` only, `will-change: transform` |
+| 2 | Blueprint grid | Always | 24px minor + 120px major hairlines, masked to fade downwards | Static | Same | Background only |
+| 3 | Power-on | First command-center mount per session | KPI tiles then instruments: fade + rise `--motion-distance` + blur-in `--motion-blur`, stagger `--dur-stagger` | `--dur-enter` 520 ms, `--ease-out` | Instant | Only on first mount (flag in memory) |
+| 4 | Count-up | Mount and every value change (KPIs, lens, plaque) | Tween from the last shown value, ease-out quart | `--dur-count` 1.1 s (600 ms for updates) | Final value | motion value; no per-frame React renders |
+| 5 | Draw-on | First mount of sparklines and the occupancy line | `stroke-dashoffset` 1 → 0 with `pathLength=1`; area and dots fade in after | `--dur-draw` 900 ms, stagger 90 ms | Drawn | Once; later updates redraw without animation |
+| 6 | Timeline bars grow | First mount | `scaleY` 0 → 1 from the baseline, 22 ms stagger per hour | `--dur-slow` 360 ms, `--ease-out` | Instant | `transform-box: fill-box` |
+| 7 | Gauge sweep | Mount and value change | Arc `stroke-dasharray` transitions; the unauthorized segment rotates to follow | `--dur-draw`, `--ease-out` | Instant | px dash values (§5.6) |
+| 8 | Radar sweep + blip flare | Always on the command center | Conic sweep rotates; each blip flares when passed (delay synced to sweep phase) | `--dur-radar` 8 s linear, infinite | Sweep frozen at 300° (35% opacity), blips static | 1 rotating layer; paused off-screen or hidden |
+| 9 | Plate scan | Each `gate.event` in the Gate feed; simulator results | Scrambled plate at fixed width → cyan reticle hunts → beam sweeps → decode left → right → reticle snaps + verdict stamp (scale 1.35 → 1) + stage glow | Beam `--dur-scan` 900 ms `--ease-scan`; decode `--dur-decode` 600–820 ms; lock/stamp `--dur-verdict` 320 ms `--ease-snap` | Final state immediately | One element animates; decode writes text in rAF for < 1 s |
+| 10 | Tile arrive / leave | Session opened or closed | Drop in from the aisle side (∓16px, scale 0.8 → 1) + cyan ping ring; leave = reverse + fade | 620 ms `--ease-snap` / 360 ms `--ease-in` | Appear / disappear | `transform`/`opacity` |
+| 11 | Unauthorized pulse | Tile with an open alarm | Red ring scales 0.96 → 1.35 and fades out | `--dur-pulse` 1.6 s, infinite | Static ring at 1.12 | One pseudo-element per red tile (rarely > 3) |
+| 12 | Sensor / LIVE ping | Active gate; LIVE readout | Dot ring scales 1 → 3.2 and fades out | 2 s infinite, `--ease-out` | Static dot | `transform` |
+| 13 | Live ping | Row/card/tile id from SSE | Cyan wash holds 600 ms, then fades; list rows expand from 0 height | `--dur-highlight` 1.8 s | Colour fade kept (no motion) | Colour only |
+| 14 | Alarm takeover | `alarm.created` | §4.6: edge glow ×2, banner slide + sheen + siren swing, badge bump | 2.4 s / 460 ms / 1.1 s / 900 ms / 460 ms | Static edge 4 s, no slide or bump | Glow is a fixed layer: opacity only |
+| 15 | Badge bump | Count increases (alarms, requests) | Scale 1 → 1.32 → 1 | 460 ms `--ease-snap` | None | – |
+| 16 | Cursor spotlight | Pointer over an instrument (fine pointer only) | Radial blue fill (`--spotlight-size` 380px) + border light masked to the 1px edge, following the cursor via `--mx`/`--my` | Fade 400 ms | Off | One rAF-throttled pointermove listener on the document |
+| 17 | Palette open | ⌘K | Scrim fades; panel rises 10px, scales 0.98 → 1, blur-in | `--dur-base` 220 ms `--ease-out` | Instant | – |
+| 18 | Dossier / dialogs / toasts | Open and close | Drawer slides from the right (spring); dialogs fade + rise + blur-in; toasts rise, exit right | Spring / `--dur-base` | Fade only | – |
+| 19 | Autopilot stripes | Autopilot on | Diagonal cyan stripes scroll inside the strip chip | 1.1 s linear, infinite | Static stripes | Small element; `background-position` |
+| 20 | Wall residual glow | Wall mode + undismissed open alarm | Edge glow breathes 0.18 ↔ 0.42 | `--dur-breathe` 4 s alternate | Static at 0.35 | Opacity only |
+
+Keep effects to this list. Anything new needs a real data trigger, token timings, an RM fallback and the
+same performance rules.
+
+---
+
+## 14. Removed or renamed in v2
+
+| v1 | v2 |
+|---|---|
+| Barlow + Barlow Semi Condensed (400–700) | Space Grotesk 700 + Inter 400 only (§1.2); remove the Barlow packages |
+| Dark asphalt sidebar with a yellow lane marker | Light glass sidebar with a blue glowing marker; dark command strip on top (§3.3) |
+| Sidebar footer: LiveIndicator, sound switch, language, user, logout | Moved into the command strip and avatar menu |
+| Yellow "fresh paint" highlight, `--c-marking*` | Cyan live ping (§4.4); the yellow primitives are removed |
+| Dashboard with KPI strip (bay dividers) + 4 panels | Command center (§5.6). `dashboard.recentEvents.*` and `dashboard.pendingRequests.*` become unused once the old DashboardPage is deleted (keys kept until then). |
+| `nav.dashboard` "Dashboard" / "Übersicht" | "Command center" / "Leitstand" (same key). `dashboard.title` too. New `nav.dashboardShort` for the tab bar. |
+| `--text-sm` 14px; radii 4/6/10/14 | 13px; radii 6/10/16/22 (+ `--radius-xs` 4) |
+| `--plate-bg` as fill | `--plate-bg` is now the flat gap colour; the fill is `--plate-fill` (gradient) |
+| `--color-nav-*` dark values; `--color-focus-on-dark` yellow | Light-sidebar values; `--color-focus-on-dark` is cyan and only used on dark accent surfaces |
+| 409 on `POST /api/admins` (no code) | `EMAIL_TAKEN`, mapped to the email field (`settings.admins.duplicateEmail`; `errors.EMAIL_TAKEN` as fallback) |

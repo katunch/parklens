@@ -4,7 +4,7 @@ import { Link, type LinkProps } from 'react-router';
 import { cx } from '../lib/cx';
 import { Spinner } from './Spinner';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'nav' | 'link';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'dark' | 'nav' | 'link' | 'on-danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface CommonProps {
@@ -20,7 +20,9 @@ interface CommonProps {
 }
 
 function classes({ variant = 'secondary', size = 'md', block, iconOnly, className }: CommonProps, loading?: boolean) {
-  return cx('btn', `btn--${variant}`, `btn--${size}`, block && 'btn--block', iconOnly && 'btn--icon', loading && 'is-loading', className);
+  // v1 `nav` (asphalt sidebar) becomes the v2 `dark` variant (strip, scanner, tooltips).
+  const v = variant === 'nav' ? 'dark' : variant;
+  return cx('btn', `btn--${v}`, `btn--${size}`, block && 'btn--block', iconOnly && 'btn--icon', loading && 'is-loading', className);
 }
 
 function Content({ icon: Icon, iconEnd: IconEnd, size = 'md', loading, children }: CommonProps & { loading?: boolean }) {

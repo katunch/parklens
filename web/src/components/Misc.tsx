@@ -20,12 +20,12 @@ export function Logo({ wordmark = true, className }: { wordmark?: boolean; class
 }
 
 /** `<time>` with relative wording and the full date-time in the title (UX §2.2). */
-export function RelativeTime({ iso, className }: { iso: string; className?: string }) {
+export function RelativeTime({ iso, className, compact }: { iso: string; className?: string; compact?: boolean }) {
   const fmt = useFmt();
   const now = useNow();
   return (
     <time dateTime={iso} title={fmt.dateTime(iso)} className={cx('rel-time', className)}>
-      {fmt.relative(iso, now)}
+      {fmt.relative(iso, now, compact)}
     </time>
   );
 }

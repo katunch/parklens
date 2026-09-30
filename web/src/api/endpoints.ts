@@ -7,9 +7,11 @@ import type {
   CheckOutResult,
   CreateRequestResult,
   DashboardSummary,
+  DashboardTimeline,
   GateEvent,
   GateEventListParams,
   GateInput,
+  GateStatus,
   Health,
   List,
   LoginResult,
@@ -22,7 +24,7 @@ import type {
   ResolveAlarmInput,
   SessionListParams,
   Settings,
-  WebhookSettings,
+  SettingsInput,
   WebhookTestResult,
 } from './types';
 
@@ -45,6 +47,8 @@ export const api = {
 
   // admin
   summary: () => http.get<DashboardSummary>('/dashboard/summary'),
+  timeline: () => http.get<DashboardTimeline>('/dashboard/timeline'),
+  gates: () => http.get<{ items: GateStatus[] }>('/dashboard/gates'),
 
   permits: (params: PermitListParams) => http.get<List<Permit>>('/permits', { query: params }),
   permit: (id: string) => http.get<Permit>(`/permits/${enc(id)}`),
@@ -66,7 +70,7 @@ export const api = {
   resolveAlarm: (id: string, body: ResolveAlarmInput) => http.post<Alarm>(`/alarms/${enc(id)}/resolve`, body),
 
   settings: () => http.get<Settings>('/settings'),
-  saveSettings: (webhook: WebhookSettings) => http.put<Settings>('/settings', { webhook }),
+  saveSettings: (body: SettingsInput) => http.put<Settings>('/settings', body),
   testWebhook: () => http.post<WebhookTestResult>('/settings/webhook/test'),
 
   admins: () => http.get<List<Admin>>('/admins'),
@@ -81,6 +85,10 @@ export const api = {
 /** React Query keys (UX §8). SSE invalidation matches on the first segment. */
 export const qk = {
   summary: ['summary'] as const,
+  timeline: ['timeline'] as const,
+  gates: ['gates'] as const,
+  /** Plate dossier bundle (UX §10). */
+  plate: (plate: string) => ['plate', plate] as const,
   alarms: (p?: AlarmListParams) => (p ? (['alarms', p] as const) : (['alarms'] as const)),
   alarm: (id: string) => ['alarms', 'detail', id] as const,
   sessions: (p?: SessionListParams) => (p ? (['sessions', p] as const) : (['sessions'] as const)),

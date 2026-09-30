@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { lazy, Suspense, useState } from 'react';
+import { MotionConfig } from 'motion/react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { toApiError } from './api/errors';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
@@ -14,7 +15,7 @@ import { RequestPage } from './pages/public/RequestPage';
 import { RequestStatusPage } from './pages/public/RequestStatusPage';
 import { StatusLookupPage } from './pages/public/StatusLookupPage';
 
-const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
+const CommandCenterPage = lazy(() => import('./pages/admin/command/CommandCenterPage'));
 const AlarmsPage = lazy(() => import('./pages/admin/AlarmsPage'));
 const RequestsPage = lazy(() => import('./pages/admin/RequestsPage'));
 const PermitsPage = lazy(() => import('./pages/admin/PermitsPage'));
@@ -50,9 +51,21 @@ function LoginRoute() {
   return <LoginPage />;
 }
 
+/** Pause every infinite animation while the tab is hidden (UX §8: html.is-hidden). */
+function useHiddenTabPause() {
+  useEffect(() => {
+    const sync = () => document.documentElement.classList.toggle('is-hidden', document.hidden);
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, []);
+}
+
 export function App() {
   const [queryClient] = useState(makeQueryClient);
+  useHiddenTabPause();
   return (
+    <MotionConfig reducedMotion="user">
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ToastProvider>
@@ -81,7 +94,7 @@ export function App() {
                     </Suspense>
                   }
                 >
-                  <Route index element={<DashboardPage />} />
+                  <Route index element={<CommandCenterPage />} />
                   <Route path="alarms" element={<AlarmsPage />} />
                   <Route path="requests" element={<RequestsPage />} />
                   <Route path="permits" element={<PermitsPage />} />
@@ -96,6 +109,7 @@ export function App() {
         </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>
+    </MotionConfig>
   );
 }
 

@@ -95,6 +95,7 @@ parklens/
 | `SEED_DEMO_DATA` | `true` | Seeds demo permits/events/alarm once (idempotent) |
 | `WEBHOOK_URL` | *(empty)* | Optional initial webhook URL (UI setting wins once saved) |
 | `WEBHOOK_FORMAT` | `generic` | `generic` \| `slack` \| `teams` |
+| `LOT_CAPACITY` | `40` | Initial number of parking spaces (v2; UI setting wins once saved) |
 
 ---
 
@@ -143,7 +144,7 @@ alarms(
   webhook_status webhook_status, webhook_error text null, created_at
 )  -- unique (session_id, type) where type='overstay'
 
-settings(key text pk, value jsonb, updated_at)   -- 'webhook' → {enabled,url,format}; 'demo_seeded' → true
+settings(key text pk, value jsonb, updated_at)   -- 'webhook' → {enabled,url,format}; 'lot' → {capacity}; 'demo_seeded' → true
 ```
 
 ### Permit validity rule
@@ -246,7 +247,9 @@ All endpoints below (except gate) require `Authorization: Bearer <jwt>`.
 
 | Method & path | Body / query | Response |
 |---|---|---|
-| `GET /api/dashboard/summary` | – | `{parkedNow, parkedUnauthorized, openAlarms, pendingRequests, entriesToday, activePermitsToday}` (all numbers) |
+| `GET /api/dashboard/summary` | – | `{parkedNow, parkedUnauthorized, openAlarms, pendingRequests, entriesToday, activePermitsToday, capacity}` (all numbers; `capacity` added in v2) |
+| `GET /api/dashboard/timeline` | – | `DashboardTimeline` (v2, see §5.8) |
+| `GET /api/dashboard/gates` | – | `{items: GateStatus[]}` (v2, see §5.8) |
 | `GET /api/permits` | `status?, type?, source?, q?` (matches plate or holder name, case-insensitive; plate part normalized), `activeToday?=true`, `limit, offset` | `{items: Permit[], total}` newest first (pending: oldest first) |
 | `POST /api/permits` | `{plate, holderName, holderEmail?, type, validDate?, requestNote?}` | `201 Permit` (status `approved`, source `admin`). 409 `ALREADY_PERMITTED` on duplicate active permit. Daily date may be today..+365 d. |
 | `GET /api/permits/:id` | – | `Permit` |
@@ -259,8 +262,8 @@ All endpoints below (except gate) require `Authorization: Bearer <jwt>`.
 | `GET /api/alarms` | `status?=open\|resolved\|all` (default `all`), `plate?`, `limit, offset` | `{items: Alarm[], total}` open first, then newest first |
 | `GET /api/alarms/:id` | – | `Alarm` (additive, for deep links) |
 | `POST /api/alarms/:id/resolve` | `{note?, grantDailyPermit?: {holderName, holderEmail?}}` | `Alarm`. If `grantDailyPermit`: create approved daily permit for today and link the open session (set `authorized=true`, `permit_id`). 422 if already resolved. |
-| `GET /api/settings` | – | `{webhook:{enabled, url, format}, timezone, gateApiKeyHint}` (hint = first 4 chars + `…`) |
-| `PUT /api/settings` | `{webhook:{enabled, url, format}}` (url must be http(s) when enabled) | same as GET |
+| `GET /api/settings` | – | `{webhook:{enabled, url, format}, lot:{capacity}, timezone, gateApiKeyHint}` (hint = first 4 chars + `…`; `lot` added in v2) |
+| `PUT /api/settings` | `{webhook?:{enabled, url, format}, lot?:{capacity}}` — at least one key; `capacity` integer 1–5000; url must be http(s) when enabled | same as GET |
 | `POST /api/settings/webhook/test` | – | `{ok: boolean, status: number\|null, error: string\|null}` |
 | `GET /api/admins` | – | `{items: Admin[], total}` |
 | `POST /api/admins` | `{email, name, password}` (password min 10 chars) | `201 Admin`; 409 `EMAIL_TAKEN` on duplicate email (case-insensitive) |
@@ -350,6 +353,47 @@ In dev, Vite proxies `/api` to `http://localhost:3000`.
 
 ---
 
+### 5.8 Command-center additions (v2)
+
+```ts
+type DashboardTimeline = {
+  date: string;            // today, YYYY-MM-DD in APP_TIMEZONE
+  timezone: string;
+  currentHour: number;     // local hour 0–23 of "now"
+  buckets: Array<{         // one per local hour of today (23/25 on DST change days), ascending
+    hour: number;          // local hour 0–23
+    start: string;         // ISO UTC instant the bucket starts
+    entries: number;       // check-ins in this hour
+    exits: number;         // check-outs in this hour
+    denied: number;        // check-ins without a valid permit in this hour
+    occupancy: number | null; // cars parked at bucket end (current hour: now); null for future hours
+  }>;
+};
+
+type GateStatus = {
+  gateId: string | null;   // null groups events sent without gateId
+  lastEventAt: string; lastDirection: 'in' | 'out'; lastPlate: string;
+  eventsToday: number; deniedToday: number;
+};                          // gates with events in the last 30 days, most recent first
+```
+
+Lot capacity lives in `settings.lot = {capacity}` (initialised from `LOT_CAPACITY`). No new SSE events: the UI
+refetches timeline/gates/summary when it receives `gate.event` / `alarm.*`.
+
+Backend clarifications (implemented behaviour):
+- **Timeline buckets** are half-open `[start, start + 1 h)`; `start` of bucket 0 is local midnight. `denied` = check-ins
+  with `authorized = false` (always ≤ `entries`). `occupancy` counts sessions with `enteredAt < T` and
+  (`exitedAt` null or `≥ T`), where `T` = bucket end, or *now* for the current bucket — so it includes cars parked
+  since previous days and equals `summary.parkedNow` for the current hour. On the fall-back day `hour` 2 appears twice
+  (use `start` as key); on the spring-forward day hour 2 is missing. `currentHour` = local hour of now.
+- **Gates**: `eventsToday` counts both directions, `deniedToday` = denied check-ins (both in the local day of
+  `APP_TIMEZONE`, `0` if the gate only had events on earlier days). `lastPlate` is the normalized plate. Events stamped
+  more than 5 min in the future (camera clock skew / simulator) are ignored for `lastEventAt`.
+- **`PUT /api/settings`** with neither `webhook` nor `lot` → 400 `VALIDATION_ERROR`; a key that is omitted keeps its
+  saved value (the v1 `{webhook}`-only body still works).
+
+---
+
 ## 7. Demo seed (`SEED_DEMO_DATA=true`, once, guarded by `settings.demo_seeded`)
 
 - Approved permanent: `ZH 123 456` (Anna Muster), `BE 98 765` (Marco Rossi)
@@ -357,3 +401,8 @@ In dev, Vite proxies `/api` to `http://localhost:3000`.
 - Pending requests: `AG 44 321` daily tomorrow (Tom Weber), `SG 1 234` permanent (Sara Frei)
 - Rejected request: `LU 777` (Max Beispiel)
 - Gate events today: `ZH 123 456` in (still parked), `BE 98 765` in+out, `ZH 999 999` in → **open unauthorized alarm**
+- **v2 (command center):** additionally ~20 more approved permanent permits (realistic Swiss names, plates from
+  various cantons) and 2 more daily permits for today; a plausible day of traffic *before the seed time* across
+  gates `north` and `south` (arrivals clustered in the morning, some lunch movements, departures late afternoon —
+  compressed into the elapsed part of the day if the seed runs early), leaving roughly 45–60 % of `LOT_CAPACITY`
+  occupied, plus one earlier unauthorized entry whose alarm is already **resolved** with a note.

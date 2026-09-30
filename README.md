@@ -31,6 +31,24 @@ Port 8088 was picked because 8080 is often already taken. Set `WEB_PORT` (and `P
 To override defaults, copy `.env.example` to `.env`. **Change `JWT_SECRET`, `GATE_API_KEY` and `ADMIN_PASSWORD`
 before running anywhere other than your laptop.**
 
+## Command center
+
+After logging in, **Admin → Command center** shows the lot live:
+
+- **Status bar**: live connection indicator, clock (Zurich time), open-alarm counter and **⌘K / Ctrl+K** command
+  palette (search plates, go to pages, quick actions).
+- **Occupancy gauge**: parked cars vs. capacity, with and without permit.
+- **Parked vehicles**: one tile per parked car. Cars without a permit pulse; click a tile to see the plate's history.
+- **Gate feed**: every check-in plays a plate scan and shows *allowed* or *denied*. Also shows north/south gate status.
+- **Timeline**: today's entries, exits and occupancy per hour.
+- **Alarms**: a red screen-edge flash and banner when a car without a permit enters. Resolve directly from the panel.
+
+**Wall mode** (`/admin?wall=1`, or the *Enter wall mode* button) is a fullscreen layout for a reception monitor.
+**Autopilot** (Admin → Gate simulator) generates realistic traffic while an admin tab is open, which is handy for demos.
+
+Lot capacity defaults to 40 (`LOT_CAPACITY`) and can be changed in **Admin → Settings → Parking lot**.
+The design prototype is in [`docs/design/command-center.html`](docs/design/command-center.html). Open it directly in a browser.
+
 ## Services
 
 | Service | Image / build | Purpose |

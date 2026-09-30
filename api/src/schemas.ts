@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { WEBHOOK_FORMATS } from './config.js';
+import { LOT_CAPACITY_MAX, LOT_CAPACITY_MIN, WEBHOOK_FORMATS } from './config.js';
 import { isValidDateString } from './lib/time.js';
 
 // ---------------------------------------------------------------------------
@@ -221,24 +221,38 @@ const httpUrl = (v: string) => {
   }
 };
 
-export const updateSettingsSchema = z.object({
-  webhook: z
-    .object({
-      enabled: z.boolean({ error: 'enabled must be a boolean' }),
-      url: z
-        .string()
-        .trim()
-        .max(2000)
-        .nullish()
-        .transform((v) => v ?? ''),
-      format: z.enum(WEBHOOK_FORMATS as ['generic', 'slack', 'teams']).default('generic'),
-    })
-    .superRefine((v, ctx) => {
-      if ((v.enabled || v.url !== '') && !httpUrl(v.url)) {
-        ctx.addIssue({ code: 'custom', path: ['url'], message: 'URL must be a valid http(s) URL' });
-      }
-    }),
-});
+export const updateSettingsSchema = z
+  .object({
+    webhook: z
+      .object({
+        enabled: z.boolean({ error: 'enabled must be a boolean' }),
+        url: z
+          .string()
+          .trim()
+          .max(2000)
+          .nullish()
+          .transform((v) => v ?? ''),
+        format: z.enum(WEBHOOK_FORMATS as ['generic', 'slack', 'teams']).default('generic'),
+      })
+      .superRefine((v, ctx) => {
+        if ((v.enabled || v.url !== '') && !httpUrl(v.url)) {
+          ctx.addIssue({ code: 'custom', path: ['url'], message: 'URL must be a valid http(s) URL' });
+        }
+      })
+      .optional(),
+    lot: z
+      .object({
+        capacity: z
+          .number({ error: 'capacity must be a number' })
+          .int('capacity must be a whole number')
+          .min(LOT_CAPACITY_MIN, `capacity must be at least ${LOT_CAPACITY_MIN}`)
+          .max(LOT_CAPACITY_MAX, `capacity must be at most ${LOT_CAPACITY_MAX}`),
+      })
+      .optional(),
+  })
+  .refine((v) => v.webhook !== undefined || v.lot !== undefined, {
+    error: 'Provide at least one of: webhook, lot',
+  });
 
 export type CreatePermitInput = z.output<typeof createPermitSchema>;
 export type PublicRequestInput = z.output<typeof publicRequestSchema>;

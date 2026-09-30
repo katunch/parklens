@@ -144,7 +144,7 @@
   "nav": {
     "mainLabel": "Hauptnavigation",
     "skipToContent": "Zum Inhalt springen",
-    "dashboard": "Übersicht",
+    "dashboard": "Leitstand",
     "alarms": "Alarme",
     "requests": "Gesuche",
     "permits": "Bewilligungen",
@@ -170,7 +170,30 @@
       "label": "Alarmton",
       "enabled": "Alarmton ein. Bei jedem neuen Alarm ertönt ein Signal.",
       "disabled": "Alarmton aus"
-    }
+    },
+    "dashboardShort": "Leitstand"
+  },
+
+  "strip": {
+    "autopilot": "Autopilot an",
+    "autopilotHint": "Simulierter Tor-Verkehr läuft. Auswählen, um ihn zu verwalten.",
+    "system": {
+      "ok": "System OK",
+      "degraded": "Datenbank nicht erreichbar",
+      "offline": "Server nicht erreichbar"
+    },
+    "gatesActive_one": "{{count}} Tor aktiv",
+    "gatesActive_other": "{{count}} Tore aktiv",
+    "gatesNone": "Keine aktuelle Tor-Aktivität",
+    "search": "Schilder, Seiten, Aktionen suchen",
+    "searchShort": "Suchen",
+    "clockLabel": "Lokale Zeit in {{place}}",
+    "wallEnter": "Wandanzeige starten",
+    "wallExit": "Wandanzeige beenden",
+    "account": "Kontomenü für {{name}}",
+    "changePassword": "Passwort ändern",
+    "lot": "Parkplatz",
+    "lotLabel": "Belegung: {{parked}} von {{capacity}} Plätzen"
   },
 
   "public": {
@@ -200,6 +223,13 @@
         "title": "Status abfragen",
         "body": "Öffnen Sie Ihren Status-Link oder geben Sie Referenzcode und Kontrollschild ein."
       }
+    },
+    "hero": {
+      "camera": "Kamera Einfahrt",
+      "live": "Live",
+      "gate": "Tor",
+      "reasonPermanent": "Gültige Dauerbewilligung",
+      "reasonDaily": "Gültige Tagesbewilligung für heute"
     }
   },
 
@@ -324,7 +354,7 @@
   },
 
   "dashboard": {
-    "title": "Übersicht",
+    "title": "Leitstand",
     "today": "Heute, {{date}}",
     "kpi": {
       "openAlarms": "Offene Alarme",
@@ -334,17 +364,25 @@
       "allParkedAuthorized": "Alle mit Bewilligung",
       "pendingRequests": "Wartende Gesuche",
       "entriesToday": "Einfahrten heute",
-      "activePermitsToday": "Heute gültige Bewilligungen",
+      "activePermitsToday": "Bewilligungen heute",
       "viewAlarms": "Alarme anzeigen",
       "viewParked": "Parkierte Autos anzeigen",
       "reviewRequests": "Gesuche prüfen",
       "viewLog": "Tor-Protokoll anzeigen",
-      "viewPermits": "Bewilligungen anzeigen"
+      "viewPermits": "Bewilligungen anzeigen",
+      "deniedToday": "Heute ohne Bewilligung: {{count}}",
+      "capacityUnit": "/ {{capacity}}",
+      "entriesThisHour": "{{count}} in der aktuellen Stunde",
+      "oldestRequest": "Ältestes gesendet {{time}}",
+      "permitsBreakdown": "Dauer {{permanent}}, Tag {{daily}}"
     },
     "openAlarms": {
       "title": "Offene Alarme",
       "emptyTitle": "Keine offenen Alarme",
-      "emptyBody": "Neue Alarme erscheinen hier sofort."
+      "emptyBody": "Neue Alarme erscheinen hier sofort.",
+      "meta": "Eingefahren {{time}} an Tor {{gate}}",
+      "metaParked": "Eingefahren {{time}} an Tor {{gate}}, noch parkiert ({{duration}})",
+      "metaOverstay": "Erkannt {{time}}, noch parkiert ({{duration}})"
     },
     "parkedNow": {
       "title": "Jetzt parkiert",
@@ -360,7 +398,177 @@
       "title": "Warten auf Bewilligung",
       "emptyTitle": "Keine wartenden Gesuche",
       "emptyBody": "Neue Gesuche erscheinen hier, sobald sie gesendet werden."
+    },
+    "gauge": {
+      "title": "Belegung",
+      "free": "frei",
+      "freeLabel": "Freie Plätze",
+      "full": "Besetzt",
+      "ofCapacity": "von {{capacity}}, {{percent}} %",
+      "aria": "{{parked}} von {{capacity}} Plätzen belegt, {{unauthorized}} ohne Bewilligung",
+      "overCapacity": "{{count}} über Kapazität",
+      "withPermit": "Mit Bewilligung",
+      "noPermit": "Ohne Bewilligung",
+      "radarCaption": "Radar: Tor-Ereignisse der letzten Stunde",
+      "radarHint": "Jeder Punkt ist ein Tor-Ereignis der letzten 60 Minuten, nach Minute platziert wie auf einem Zifferblatt. Ein Ring pro Tor."
+    },
+    "lot": {
+      "title": "Parkierte Fahrzeuge",
+      "caption": "Ein Feld pro parkiertes Auto, in der Reihenfolge der Ankunft. Die Felder sind symbolisch, keine echten Parkplätze.",
+      "legend": {
+        "permanent": "Dauer",
+        "daily": "Tagesbewilligung",
+        "none": "Ohne Bewilligung"
+      },
+      "overflow": "+{{count}} über Kapazität",
+      "unknownVehicle": "Unbekanntes Fahrzeug",
+      "tileLabel": "{{plate}}, {{holder}}, {{permit}}, parkiert seit {{duration}}",
+      "tooltip": {
+        "permanent": "Dauerbewilligung",
+        "daily": "Tagesbewilligung für heute",
+        "none": "Keine Bewilligung",
+        "noneAlarm": "Keine Bewilligung, Alarm offen",
+        "parkedSince": "Parkiert seit {{time}} ({{duration}})",
+        "hint": "Auswählen für den Verlauf"
+      }
+    },
+    "feed": {
+      "title": "Tor-Monitor",
+      "listLabel": "Letzte Tor-Ereignisse",
+      "stageGate": "Tor {{gate}}",
+      "stageNoGate": "Unbekanntes Tor",
+      "verdict": {
+        "allowed": "Erlaubt",
+        "denied": "Unberechtigt",
+        "out": "Ausgefahren"
+      },
+      "reasonOut": "Ausgefahren nach {{duration}}",
+      "reasonOutUnknown": "Ausfahrt erfasst, kein Auto war eingefahren",
+      "rowAnnounce": "{{plate}}, {{verdict}}, Tor {{gate}}",
+      "emptyTitle": "Warten auf das erste Auto",
+      "emptyBody": "Tor-Ereignisse erscheinen hier, sobald die Kamera sie meldet."
+    },
+    "sensors": {
+      "title": "Tore",
+      "state": {
+        "active": "Aktiv",
+        "idle": "Ruhig",
+        "silent": "Still"
+      },
+      "unnamed": "Tor ohne Namen",
+      "lastEvent": "Letztes Ereignis {{time}}",
+      "counts": "{{count}} heute",
+      "countsDenied": "{{count}} heute, {{denied}} unberechtigt",
+      "hint": "Basierend auf dem letzten Tor-Ereignis. ParkLens sieht nicht, ob eine Kamera online ist.",
+      "more": "+{{count}} weitere"
+    },
+    "timeline": {
+      "title": "Heute",
+      "legend": {
+        "entries": "Einfahrten",
+        "exits": "Ausfahrten",
+        "denied": "Ohne Bewilligung",
+        "occupancy": "Parkiert"
+      },
+      "totals": "{{entries}} ein, {{exits}} aus, {{denied}} ohne Bewilligung",
+      "capacity": "{{capacity}} max.",
+      "now": "Jetzt",
+      "aria": "Ein- und Ausfahrten pro Stunde heute, mit parkierten Autos im Verlauf. Jetzt {{parked}} parkiert.",
+      "tableCaption": "Verkehr pro Stunde heute",
+      "hourColumn": "Stunde"
     }
+  },
+
+  "palette": {
+    "label": "Befehlspalette",
+    "placeholder": "Kontrollschild suchen oder Seite bzw. Aktion eingeben",
+    "groups": {
+      "recent": "Zuletzt geöffnet",
+      "plates": "Kontrollschilder",
+      "pages": "Seiten",
+      "actions": "Aktionen",
+      "search": "Suche"
+    },
+    "pageDesc": "Seite öffnen",
+    "pageTag": "Seite",
+    "actions": {
+      "newPermit": "Neue Bewilligung",
+      "newPermitDesc": "Bewilligung direkt erteilen",
+      "simulateCheckIn": "Einfahrt simulieren",
+      "simulateCheckInPlate": "Einfahrt für {{plate}} simulieren",
+      "simulateDesc": "Tor-Simulator öffnen",
+      "autopilotStart": "Autopilot starten",
+      "autopilotStop": "Autopilot stoppen",
+      "autopilotDesc": "Simulierter Tor-Verkehr",
+      "wallEnter": "Wandanzeige starten",
+      "wallExit": "Wandanzeige beenden",
+      "wallDesc": "Leitstand im Vollbild für einen Bildschirm am Empfang",
+      "language": "Sprache wechseln zu {{language}}",
+      "languageDesc": "Sprache der Oberfläche ändern",
+      "soundOn": "Alarmton einschalten",
+      "soundOff": "Alarmton ausschalten",
+      "soundDesc": "Signal bei jedem neuen Alarm",
+      "logout": "Abmelden",
+      "logoutDesc": "Sitzung beenden"
+    },
+    "searchPermits": "Bewilligungen nach «{{query}}» durchsuchen",
+    "searchPermitsDesc": "Bewilligungen, gefiltert",
+    "searchLog": "Tor-Protokoll nach «{{query}}» durchsuchen",
+    "searchLogDesc": "Aktivität, Tor-Protokoll",
+    "plate": {
+      "unknown": "Unbekanntes Fahrzeug",
+      "parked": "Parkiert seit {{duration}}",
+      "permanent": "Dauer",
+      "daily": "Tagesbewilligung",
+      "noPermit": "Ohne Bewilligung",
+      "pending": "Gesuch in Prüfung",
+      "openAlarms_one": "{{count}} offener Alarm",
+      "openAlarms_other": "{{count}} offene Alarme"
+    },
+    "searching": "Suche läuft…",
+    "noResults": "Keine Treffer für «{{query}}»",
+    "noResultsHint": "Versuchen Sie ein Kontrollschild wie ZH 123 456 oder einen Seitennamen.",
+    "results_one": "{{count}} Treffer",
+    "results_other": "{{count}} Treffer",
+    "hints": {
+      "move": "Bewegen",
+      "open": "Öffnen",
+      "close": "Schliessen"
+    }
+  },
+
+  "dossier": {
+    "label": "Verlauf für {{plate}}",
+    "status": {
+      "parked": "Parkiert seit {{time}} ({{duration}})",
+      "notParked": "Nicht auf dem Parkplatz",
+      "lastSeen": "Zuletzt gesehen {{time}}"
+    },
+    "sections": {
+      "permits": "Bewilligungen",
+      "visits": "Letzte Besuche",
+      "alarms": "Alarme"
+    },
+    "empty": {
+      "permits": "Keine Bewilligungen für dieses Kontrollschild.",
+      "visits": "Keine Besuche erfasst.",
+      "alarms": "Keine Alarme für dieses Kontrollschild."
+    },
+    "visit": {
+      "parked": "Ein {{entered}}, noch parkiert ({{duration}})",
+      "closed": "Ein {{entered}}, aus {{exited}} ({{duration}})"
+    },
+    "actions": {
+      "createPermit": "Bewilligung für dieses Schild erstellen",
+      "openLog": "Tor-Protokoll öffnen",
+      "openPermits": "In Bewilligungen öffnen"
+    }
+  },
+
+  "wall": {
+    "label": "Wandanzeige",
+    "fullscreenPrompt": "Den Leitstand auf diesem Bildschirm im Vollbild anzeigen.",
+    "fullscreenAction": "Vollbild starten"
   },
 
   "alarms": {
@@ -597,6 +805,29 @@
     }
   },
 
+  "autopilot": {
+    "title": "Autopilot",
+    "lead": "Erzeugt alle paar Sekunden realistischen Tor-Verkehr: meist Autos mit Bewilligung, ab und zu ein unbekanntes Kontrollschild. Praktisch für Demos.",
+    "warning": "Die Ereignisse sind echt: Sie erzeugen Parkvorgänge, Alarme und Benachrichtigungen. Der Autopilot stoppt, wenn Sie sich abmelden oder diesen Tab schliessen.",
+    "toggle": "Autopilot ausführen",
+    "pace": {
+      "label": "Tempo",
+      "calm": "Ruhig",
+      "busy": "Belebt",
+      "calmHint": "Alle 8–15 s",
+      "busyHint": "Alle 3–6 s"
+    },
+    "stats": "Gesendet: {{events}}, Alarme: {{alarms}}",
+    "badge": "Autopilot",
+    "started": "Autopilot gestartet",
+    "stopped": "Autopilot gestoppt",
+    "paused": "Autopilot nach wiederholten Fehlern pausiert: {{error}}",
+    "popover": {
+      "stop": "Autopilot stoppen",
+      "open": "Tor-Simulator öffnen"
+    }
+  },
+
   "settings": {
     "title": "Einstellungen",
     "notifications": {
@@ -664,6 +895,15 @@
       "submit": "Passwort ändern",
       "success": "Passwort geändert",
       "wrongCurrent": "Das aktuelle Passwort ist falsch."
+    },
+    "lot": {
+      "title": "Parkplatz",
+      "lead": "Wird im Leitstand für Belegung und freie Plätze verwendet.",
+      "capacityLabel": "Kapazität",
+      "capacityHint": "Anzahl Parkplätze, 1 bis 5000.",
+      "capacitySuffix": "Plätze",
+      "save": "Kapazität speichern",
+      "saved": "Kapazität gespeichert"
     }
   },
 
@@ -713,6 +953,7 @@
     "urlRequired": "Geben Sie die Webhook-URL ein.",
     "urlInvalid": "Geben Sie eine URL ein, die mit https:// oder http:// beginnt.",
     "referenceRequired": "Geben Sie den Referenzcode ein.",
-    "gateTooLong": "Verwenden Sie höchstens {{max}} Zeichen."
+    "gateTooLong": "Verwenden Sie höchstens {{max}} Zeichen.",
+    "capacityInvalid": "Geben Sie eine ganze Zahl von 1 bis 5000 ein."
   }
 }

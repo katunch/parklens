@@ -49,4 +49,7 @@ export const STORAGE_KEYS = {
   simGate: 'parklens.simGate',
   dismissedAlarms: 'parklens.dismissedAlarms',
   simResults: 'parklens.simResults',
+  recentPlates: 'parklens.recentPlates',
+  autopilot: 'parklens.autopilot',
+  wall: 'parklens.wall',
 } as const;

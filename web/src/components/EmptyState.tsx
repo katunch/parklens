@@ -19,7 +19,9 @@ export function EmptyState({ icon: Icon, title, body, action, tone = 'default', 
   const H = level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3';
   return (
     <div className={cx('empty', `empty--${tone}`, className)}>
-      <Icon size={32} aria-hidden="true" className="empty__icon" />
+      <span className="empty__ring" aria-hidden="true">
+        <Icon size={26} className="empty__icon" />
+      </span>
       <H className="empty__title" ref={headingRef} tabIndex={headingRef ? -1 : undefined}>
         {title}
       </H>

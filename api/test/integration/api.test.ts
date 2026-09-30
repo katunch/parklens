@@ -9,6 +9,7 @@ import { addDays, todayInTz, zonedTimeToUtc } from '../../src/lib/time.js';
 import { migrate } from '../../src/migrate.js';
 import { seedDemoData } from '../../src/seed.js';
 import { ensureInitialAdmin } from '../../src/services/admins.js';
+import { getDashboardTimeline, getGateStatuses } from '../../src/services/dashboard.js';
 import { initSettings } from '../../src/services/settings.js';
 import { waitForWebhooks } from '../../src/services/webhook.js';
 
@@ -208,7 +209,7 @@ describe.skipIf(!process.env['TEST_DATABASE_URL'])('API integration (Postgres)',
     });
 
     it('check-out closes the session and reports the duration', async () => {
-      const enteredAt = new Date(Date.now() - 90 * 60_000);
+      const enteredAt = new Date(Date.now() - 95 * 60_000); // exit lands 5 min in the past
       const inRes = await checkIn('ZH 100 200', { occurredAt: enteredAt.toISOString() });
       const out = await checkOut('zh100200', { occurredAt: new Date(enteredAt.getTime() + 90 * 60_000 + 5_000).toISOString() });
       expect(out.status).toBe(200);
@@ -513,7 +514,12 @@ describe.skipIf(!process.env['TEST_DATABASE_URL'])('API integration (Postgres)',
       const { port } = sink.address() as AddressInfo;
       try {
         const initial = await request(app).get('/api/settings').set(auth());
-        expect(initial.body).toEqual({ webhook: { enabled: false, url: '', format: 'generic' }, timezone: TZ, gateApiKeyHint: 'test…' });
+        expect(initial.body).toEqual({
+          webhook: { enabled: false, url: '', format: 'generic' },
+          lot: { capacity: 40 },
+          timezone: TZ,
+          gateApiKeyHint: 'test…',
+        });
 
         const invalid = await request(app).put('/api/settings').set(auth()).send({ webhook: { enabled: true, url: 'nope', format: 'generic' } });
         expect(invalid.status).toBe(400);
@@ -589,25 +595,211 @@ describe.skipIf(!process.env['TEST_DATABASE_URL'])('API integration (Postgres)',
   });
 
   // -------------------------------------------------------------------------
+  describe('command center (v2)', () => {
+    it('settings.lot round-trip, validation and capacity in the summary', async () => {
+      const initial = await request(app).get('/api/settings').set(auth());
+      expect(initial.body.lot).toEqual({ capacity: 40 });
+
+      const lotOnly = await request(app).put('/api/settings').set(auth()).send({ lot: { capacity: 55 } });
+      expect(lotOnly.status).toBe(200);
+      expect(lotOnly.body).toMatchObject({ lot: { capacity: 55 }, webhook: initial.body.webhook });
+
+      for (const body of [{}, { lot: { capacity: 0 } }, { lot: { capacity: 5001 } }, { lot: { capacity: 12.5 } }, { lot: { capacity: '40' } }]) {
+        const bad = await request(app).put('/api/settings').set(auth()).send(body);
+        expect(bad.status, JSON.stringify(body)).toBe(400);
+        expect(bad.body.error.code).toBe('VALIDATION_ERROR');
+      }
+
+      const summary = await request(app).get('/api/dashboard/summary').set(auth());
+      expect(summary.body.capacity).toBe(55);
+
+      // webhook-only PUT (v1 frontend) keeps the lot setting
+      const webhookOnly = await request(app)
+        .put('/api/settings')
+        .set(auth())
+        .send({ webhook: { enabled: false, url: '', format: 'teams' } });
+      expect(webhookOnly.status).toBe(200);
+      expect(webhookOnly.body).toMatchObject({ webhook: { format: 'teams' }, lot: { capacity: 55 } });
+
+      await request(app).put('/api/settings').set(auth()).send({ webhook: { enabled: false, url: '', format: 'generic' }, lot: { capacity: 40 } });
+    });
+
+    it('timeline has one bucket per local hour (23/24/25 on DST days)', async () => {
+      const cases: [string, number, number[]][] = [
+        ['2026-03-29', 23, [0, 1, 3, 4]], // spring forward: 02:00 skipped
+        ['2026-10-25', 25, [0, 1, 2, 2, 3]], // fall back: 02:00 twice
+        ['2026-09-30', 24, [0, 1, 2, 3, 4]],
+      ];
+      for (const [date, count, firstHours] of cases) {
+        const tl = await getDashboardTimeline(zonedTimeToUtc(date, '12:00', TZ));
+        expect(tl.date).toBe(date);
+        expect(tl.timezone).toBe(TZ);
+        expect(tl.currentHour).toBe(12);
+        expect(tl.buckets).toHaveLength(count);
+        expect(tl.buckets.slice(0, firstHours.length).map((b) => b.hour)).toEqual(firstHours);
+        expect(tl.buckets.at(-1)!.hour).toBe(23);
+        expect(tl.buckets[0]!.start).toBe(zonedTimeToUtc(date, '00:00', TZ).toISOString());
+        tl.buckets.forEach((b, i) => {
+          if (i > 0) expect(Date.parse(b.start) - Date.parse(tl.buckets[i - 1]!.start)).toBe(3_600_000);
+        });
+      }
+
+      const live = await request(app).get('/api/dashboard/timeline').set(auth());
+      expect(live.status).toBe(200);
+      expect(live.body.date).toBe(today());
+      const nowMs = Date.now();
+      const current = live.body.buckets.find(
+        (b: { start: string }) => Date.parse(b.start) <= nowMs && nowMs < Date.parse(b.start) + 3_600_000,
+      );
+      expect(current.occupancy).toEqual(expect.any(Number));
+      for (const b of live.body.buckets.filter((x: { start: string }) => Date.parse(x.start) > nowMs)) {
+        expect(b.occupancy).toBeNull();
+      }
+      // (occupancy == parkedNow is asserted on clean data in the seed tests; earlier tests here use future timestamps)
+    });
+
+    it('timeline counts entries/exits/denied per hour and occupancy at bucket end', async () => {
+      const day = '2026-01-15';
+      const at = (hhmm: string) => ({ occurredAt: zonedTimeToUtc(day, hhmm, TZ).toISOString(), gateId: 'tl-gate' });
+      await request(app).post('/api/permits').set(auth()).send({ plate: 'TL 2', holderName: 'Timeline', type: 'permanent' });
+
+      expect((await checkIn('TL 1', at('08:10'))).body.allowed).toBe(false);
+      expect((await checkIn('TL 2', at('08:40'))).body.allowed).toBe(true);
+      await checkOut('TL 1', at('09:15'));
+      expect((await checkIn('TL 3', at('09:20'))).body.allowed).toBe(false);
+      await checkOut('TL 2', at('11:05'));
+
+      const tl = await getDashboardTimeline(zonedTimeToUtc(day, '12:30', TZ));
+      expect(tl.buckets).toHaveLength(24);
+      const byHour = (h: number) => {
+        const b = tl.buckets.find((x) => x.hour === h)!;
+        return [b.entries, b.exits, b.denied, b.occupancy];
+      };
+      expect(byHour(7)).toEqual([0, 0, 0, 0]);
+      expect(byHour(8)).toEqual([2, 0, 1, 2]);
+      expect(byHour(9)).toEqual([1, 1, 1, 2]);
+      expect(byHour(10)).toEqual([0, 0, 0, 2]);
+      expect(byHour(11)).toEqual([0, 1, 0, 1]);
+      expect(byHour(12)).toEqual([0, 0, 0, 1]); // current hour → occupancy at "now"
+      expect(byHour(13)).toEqual([0, 0, 0, null]); // future
+      expect(tl.currentHour).toBe(12);
+
+      await checkOut('TL 3', at('13:00'));
+    });
+
+    it('gates: last event per gate (null gate grouped), today counts, most recent first', async () => {
+      const t = Date.now();
+      const iso = (ms: number) => ({ occurredAt: new Date(ms).toISOString() });
+      expect((await checkIn('GT 1', { gateId: 'gate-a', ...iso(t - 2000) })).body.allowed).toBe(false);
+      await checkOut('GT 1', { gateId: 'gate-a', ...iso(t - 1000) });
+      await checkIn('GT 2', { gateId: null, ...iso(t) });
+
+      const res = await request(app).get('/api/dashboard/gates').set(auth());
+      expect(res.status).toBe(200);
+      const items: { gateId: string | null; lastEventAt: string }[] = res.body.items;
+      expect(items[0]).toMatchObject({ gateId: null, lastDirection: 'in', lastPlate: 'GT2', lastEventAt: new Date(t).toISOString() });
+      expect(items.find((g) => g.gateId === 'gate-a')).toEqual({
+        gateId: 'gate-a',
+        lastEventAt: new Date(t - 1000).toISOString(),
+        lastDirection: 'out',
+        lastPlate: 'GT1',
+        eventsToday: 2,
+        deniedToday: 1,
+      });
+      expect(items.filter((g) => g.gateId === null)).toHaveLength(1);
+      const times = items.map((g) => Date.parse(g.lastEventAt));
+      expect([...times].sort((a, b) => b - a)).toEqual(times);
+      expect(items.some((g) => g.gateId === 'tl-gate')).toBe(false); // January events are older than 30 days
+    });
+  });
+
+  // -------------------------------------------------------------------------
   describe('demo seed', () => {
-    it('seeds once, with an open unauthorized alarm for ZH 999 999', async () => {
-      expect(await seedDemoData()).toBe(true);
+    const resetData = async () => {
+      await query('TRUNCATE alarms, gate_events, parking_sessions, permits RESTART IDENTITY CASCADE');
+      await query(`DELETE FROM settings WHERE key = 'demo_seeded'`);
+    };
+
+    const eventBounds = async () =>
+      (await query<{ min: Date; max: Date; n: number }>('SELECT min(occurred_at), max(occurred_at), count(*)::int AS n FROM gate_events'))
+        .rows[0]!;
+
+    it('seeds once: v1 records plus a v2 day of traffic, nothing in the future', async () => {
+      await resetData();
+      const seededAt = new Date();
+      expect(await seedDemoData(seededAt)).toBe(true);
       expect(await seedDemoData()).toBe(false);
 
+      // v1 records
       const alarms = await request(app).get('/api/alarms?plate=ZH999999').set(auth());
       expect(alarms.body.items).toHaveLength(1);
       expect(alarms.body.items[0]).toMatchObject({ type: 'unauthorized_entry', status: 'open', webhookStatus: 'skipped', isStillParked: true });
-
-      const pending = await request(app).get('/api/permits?status=pending&q=AG44321').set(auth());
-      // AG 44 321 daily for tomorrow was approved in an earlier test for the same date → seed still inserts its own
-      expect(pending.body.items.some((p: { validDate: string }) => p.validDate === addDays(today(), 1))).toBe(true);
-
+      const pending = await request(app).get('/api/permits?status=pending').set(auth());
+      expect(pending.body.items.map((p: { plate: string }) => p.plate).sort()).toEqual(['AG44321', 'SG1234']);
+      expect(pending.body.items.find((p: { plate: string }) => p.plate === 'AG44321').validDate).toBe(addDays(today(), 1));
       const parked = await request(app).get('/api/sessions?active=true&plate=ZH123456').set(auth());
       expect(parked.body.items[0]).toMatchObject({ authorized: true, permit: { type: 'permanent', holderName: 'Anna Muster' } });
       const be = await request(app).get('/api/sessions?plate=BE98765').set(auth());
+      expect(be.body.items).toHaveLength(1);
       expect(be.body.items[0].exitedAt).not.toBeNull();
       const rejected = await request(app).get('/api/permits?status=rejected&q=LU777').set(auth());
       expect(rejected.body.total).toBe(1);
+
+      // v2: permits, alarms, occupancy, gates, timeline
+      const permanent = await request(app).get('/api/permits?type=permanent&status=approved&limit=200').set(auth());
+      expect(permanent.body.total).toBeGreaterThanOrEqual(22);
+      const daily = await request(app).get('/api/permits?type=daily&activeToday=true').set(auth());
+      expect(daily.body.total).toBe(3);
+
+      const all = await request(app).get('/api/alarms').set(auth());
+      expect(all.body.items.filter((a: { status: string }) => a.status === 'open')).toHaveLength(1);
+      const resolved = all.body.items.filter((a: { status: string }) => a.status === 'resolved');
+      expect(resolved).toHaveLength(1);
+      expect(resolved[0]).toMatchObject({ plate: 'UR6150', webhookStatus: 'skipped', resolvedByName: 'Test Admin', isStillParked: false });
+      expect(resolved[0].resolutionNote).toEqual(expect.any(String));
+
+      const summary = (await request(app).get('/api/dashboard/summary').set(auth())).body;
+      expect(summary.capacity).toBe(40);
+      expect(summary.parkedNow / summary.capacity).toBeGreaterThanOrEqual(0.45);
+      expect(summary.parkedNow / summary.capacity).toBeLessThanOrEqual(0.6);
+      expect(summary).toMatchObject({ parkedUnauthorized: 1, openAlarms: 1, pendingRequests: 2, activePermitsToday: permanent.body.total + 3 });
+
+      const bounds = await eventBounds();
+      expect(bounds.max.getTime()).toBeLessThanOrEqual(seededAt.getTime());
+      expect(todayInTz(TZ, bounds.min)).toBe(today());
+      expect(summary.entriesToday).toBe(bounds.n - (await query<{ n: number }>(`SELECT count(*)::int AS n FROM gate_events WHERE direction = 'out'`)).rows[0]!.n);
+
+      const gates = await getGateStatuses(seededAt);
+      expect(gates.items.map((g) => g.gateId).sort()).toEqual(['north', 'south']);
+      expect(gates.items.reduce((n, g) => n + g.deniedToday, 0)).toBe(2);
+      expect(gates.items.reduce((n, g) => n + g.eventsToday, 0)).toBe(bounds.n);
+
+      const tl = await getDashboardTimeline(seededAt);
+      expect(tl.buckets.reduce((n, b) => n + b.entries, 0)).toBe(summary.entriesToday);
+      expect(tl.buckets.reduce((n, b) => n + b.denied, 0)).toBe(2);
+      const current = tl.buckets.filter((b) => b.occupancy !== null).at(-1)!;
+      expect(current.occupancy).toBe(summary.parkedNow);
+    });
+
+    it('compresses the day when seeded early in the morning (DST day)', async () => {
+      await resetData();
+      const day = '2026-03-29';
+      const early = zonedTimeToUtc(day, '07:10', TZ);
+      expect(await seedDemoData(early)).toBe(true);
+
+      const bounds = await eventBounds();
+      expect(bounds.min.getTime()).toBeGreaterThanOrEqual(zonedTimeToUtc(day, '00:00', TZ).getTime());
+      expect(bounds.max.getTime()).toBeLessThan(early.getTime());
+
+      const tl = await getDashboardTimeline(early);
+      expect(tl.buckets).toHaveLength(23);
+      expect(tl.currentHour).toBe(7);
+      const open = (await query<{ n: number }>('SELECT count(*)::int AS n FROM parking_sessions WHERE exited_at IS NULL')).rows[0]!.n;
+      expect(open / 40).toBeGreaterThanOrEqual(0.45);
+      expect(open / 40).toBeLessThanOrEqual(0.6);
+      expect(tl.buckets.find((b) => b.hour === 7)!.occupancy).toBe(open);
+      expect(tl.buckets.find((b) => b.hour === 8)!.occupancy).toBeNull();
+      expect(tl.buckets.filter((b) => b.entries > 0).length).toBeGreaterThanOrEqual(3); // activity spread over hours
     });
   });
 });

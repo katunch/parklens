@@ -1,13 +1,12 @@
-import '@fontsource/barlow/400.css';
-import '@fontsource/barlow/500.css';
-import '@fontsource/barlow/600.css';
-import '@fontsource/barlow-semi-condensed/500.css';
-import '@fontsource/barlow-semi-condensed/600.css';
-import '@fontsource/barlow-semi-condensed/700.css';
+// Self-hosted fonts (UX §1.2): exactly Space Grotesk 700 and Inter 400.
+import '@fontsource/space-grotesk/700.css';
+import '@fontsource/inter/400.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/layout.css';
+import './styles/command.css';
+import './styles/overlays.css';
 import './styles/pages.css';
 import './i18n';
 

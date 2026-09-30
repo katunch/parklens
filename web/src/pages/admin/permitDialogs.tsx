@@ -307,18 +307,18 @@ interface CreateValues extends Record<string, unknown> {
   requestNote: string;
 }
 
-export function CreatePermitDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function CreatePermitDialog({ open, onClose, initialPlate = '' }: { open: boolean; onClose: () => void; initialPlate?: string }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   return (
     <Dialog open={open} onClose={onClose} title={t('permits.createDialog.title')} description={t('permits.createDialog.lead')} size="md" busy={busy} dirty={dirty}>
-      {open && <CreatePermitForm onClose={onClose} onBusy={setBusy} onDirty={setDirty} />}
+      {open && <CreatePermitForm onClose={onClose} onBusy={setBusy} onDirty={setDirty} initialPlate={initialPlate} />}
     </Dialog>
   );
 }
 
-function CreatePermitForm({ onClose, onBusy, onDirty }: { onClose: () => void; onBusy: (b: boolean) => void; onDirty: (d: boolean) => void }) {
+function CreatePermitForm({ onClose, onBusy, onDirty, initialPlate }: { onClose: () => void; onBusy: (b: boolean) => void; onDirty: (d: boolean) => void; initialPlate: string }) {
   const { t } = useTranslation();
   const fmt = useFmt();
   const toast = useToast();
@@ -328,7 +328,7 @@ function CreatePermitForm({ onClose, onBusy, onDirty }: { onClose: () => void; o
   const maxDate = addDays(today, ADMIN_MAX_DAYS);
 
   const form = useForm<CreateValues>({
-    initial: { plate: '', holderName: '', holderEmail: '', type: 'permanent', validDate: today, requestNote: '' },
+    initial: { plate: initialPlate, holderName: '', holderEmail: '', type: 'permanent', validDate: today, requestNote: '' },
     idPrefix: 'create-permit',
     validateOnBlur: ['plate', 'holderEmail'],
     validate: (v) => ({

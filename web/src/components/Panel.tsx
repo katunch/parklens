@@ -10,13 +10,14 @@ interface PanelProps {
   className?: string;
   as?: 'section' | 'div';
   headerExtra?: ReactNode;
+  id?: string;
 }
 
 /** White surface, 1px border, no shadow (UX §6 Panel). */
-export function Panel({ title, action, children, flush, className, as: Tag = 'section', headerExtra }: PanelProps) {
+export function Panel({ title, action, children, flush, className, as: Tag = 'section', headerExtra, id: anchorId }: PanelProps) {
   const id = useId();
   return (
-    <Tag className={cx('panel', className)} aria-labelledby={title ? id : undefined}>
+    <Tag id={anchorId} className={cx('panel', className)} aria-labelledby={title ? id : undefined}>
       {title && (
         <header className="panel__header">
           <div className="panel__heading">

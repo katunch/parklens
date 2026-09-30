@@ -60,7 +60,10 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <Logo wordmark={false} className="login-page__logo" />
+      <span className="login-page__mark" aria-hidden="true">
+        <Logo wordmark={false} className="login-page__logo" />
+        <i className="reticle" />
+      </span>
       <h1 className="public-title public-title--sm">{t('login.title')}</h1>
       <p className="public-lead">{t('login.lead')}</p>
 

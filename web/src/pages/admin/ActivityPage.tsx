@@ -20,6 +20,7 @@ import { useFresh } from '../../lib/fresh';
 import { formatPlate } from '../../lib/plate';
 import { PAGE_SIZE, useUrlState } from '../../lib/urlState';
 import { sortParked } from '../../lib/sessions';
+import { useDossier } from '../../dossier/PlateDossier';
 
 function PermitCell({ session }: { session: ParkingSession }) {
   const { t } = useTranslation();
@@ -83,6 +84,7 @@ function PlateFilter() {
 
 function ParkedTab({ query }: { query: ReturnType<typeof useSessions> }) {
   const { t } = useTranslation();
+  const dossier = useDossier();
   const url = useUrlState();
   const isFresh = useFresh();
   const plate = url.get('plate');
@@ -96,7 +98,7 @@ function ParkedTab({ query }: { query: ReturnType<typeof useSessions> }) {
     ) : null;
 
   const columns: Array<Column<ParkingSession>> = [
-    { key: 'plate', header: t('common.fields.plate'), cell: (s) => <PlateChip plate={s.plate} size="md" />, cardSlot: 'title' },
+    { key: 'plate', header: t('common.fields.plate'), cell: (s) => <PlateChip plate={s.plate} size="md" state={s.authorized ? undefined : 'denied'} onClick={() => dossier.open(s.plate)} />, cardSlot: 'title' },
     { key: 'permit', header: t('common.fields.permit'), cell: (s) => <PermitCell session={s} /> },
     { key: 'entered', header: t('common.fields.entered'), cell: (s) => <RelativeTime iso={s.enteredAt} />, cardSlot: 'meta' },
     { key: 'duration', header: t('common.fields.duration'), cell: (s) => <Duration since={s.enteredAt} />, align: 'end', cardSlot: 'badge' },
@@ -139,6 +141,7 @@ function ParkedTab({ query }: { query: ReturnType<typeof useSessions> }) {
 
 function LogTab() {
   const { t } = useTranslation();
+  const dossier = useDossier();
   const url = useUrlState();
   const isFresh = useFresh();
   const plate = url.get('plate');
@@ -153,7 +156,7 @@ function LogTab() {
   const plateCell = (e: GateEvent) => {
     const raw = e.plateRaw.trim();
     const formatted = formatPlate(e.plate);
-    return <PlateChip plate={e.plate} size="sm" title={raw && raw !== formatted ? t('activity.cameraRead', { raw }) : undefined} />;
+    return <PlateChip plate={e.plate} size="sm" title={raw && raw !== formatted ? t('activity.cameraRead', { raw }) : undefined} onClick={() => dossier.open(e.plate)} />;
   };
   const dirCell = (e: GateEvent) => (
     <span className="dir">

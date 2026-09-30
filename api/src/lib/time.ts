@@ -61,6 +61,11 @@ export function todayInTz(tz: string, now: Date = new Date()): string {
   return dateInTz(now, tz);
 }
 
+/** Local hour (0–23) of `instant` in `tz`. */
+export function hourInTz(instant: Date, tz: string): number {
+  return wallClock(instant, tz).hour;
+}
+
 /** Add `days` calendar days to a 'YYYY-MM-DD' date. */
 export function addDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);

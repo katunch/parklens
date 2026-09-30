@@ -1,5 +1,6 @@
 /*
- * Base styles (UX §8 "Base CSS the developer adds"). Semantic tokens only.
+ * Base styles (UX §8 "Base CSS"): reset, body, focus, utilities, ambient layer, keyframes,
+ * reduced-motion and hidden-tab rules. Semantic tokens only (prototype component layer).
  */
 
 *,
@@ -11,29 +12,22 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* Focus Not Obscured: sticky top bar + alarm banner / bottom tab bar never cover focus */
-  scroll-padding-top: calc(var(--topbar-h) + 140px);
+  /* Focus Not Obscured: strip + banner on top, tab bar at the bottom */
+  scroll-padding-top: calc(var(--strip-h) + 96px);
   scroll-padding-bottom: calc(var(--tabbar-h) + var(--space-4));
-}
-
-@media (min-width: 960px) {
-  html {
-    scroll-padding-top: 140px;
-    scroll-padding-bottom: var(--space-4);
-  }
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
   font-size: var(--text-base);
   line-height: var(--leading-base);
-  background: var(--color-bg);
   color: var(--color-text);
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -48,6 +42,14 @@ dd,
 figure,
 blockquote {
   margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
 }
 
 ul,
@@ -65,8 +67,18 @@ textarea {
   letter-spacing: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
 svg {
   flex-shrink: 0;
+}
+
+b,
+strong {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
 }
 
 code {
@@ -76,12 +88,19 @@ code {
 
 a {
   color: var(--color-link);
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
 
 a:hover {
   color: var(--color-link-hover);
+}
+
+mark {
+  background: rgb(6 175 212 / 0.18);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
 }
 
 /* Global focus: 2px outline at 2px offset (blue on light surfaces). */
@@ -90,7 +109,6 @@ a:hover {
   outline-offset: var(--focus-offset);
 }
 
-/* Programmatically focused headings / main need no ring. */
 h1[tabindex='-1']:focus,
 h2[tabindex='-1']:focus,
 h3[tabindex='-1']:focus,
@@ -105,37 +123,40 @@ main[tabindex='-1']:focus {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
 }
 
 .skip-link {
   position: fixed;
-  left: var(--space-2);
-  top: var(--space-2);
+  left: 12px;
+  top: 8px;
   z-index: var(--z-skiplink);
-  padding: var(--space-2) var(--space-4);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-primary);
-  font-weight: var(--weight-semibold);
-  border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  transform: translateY(-200%);
+  font: var(--weight-bold) var(--text-sm) / 1 var(--font-display);
+  text-decoration: none;
+  transform: translateY(-160%);
 }
 
 .skip-link:focus {
   transform: none;
 }
 
-/* ---- utilities ------------------------------------------------------------ */
+/* ---- utilities ---------------------------------------------------------- */
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.02em;
 }
 
 .muted {
@@ -151,12 +172,10 @@ main[tabindex='-1']:focus {
   color: var(--color-warning-text);
 }
 
-.strong {
-  font-weight: var(--weight-semibold);
-}
-
+.strong,
 .strong-500 {
-  font-weight: var(--weight-medium);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
 }
 
 .break {
@@ -185,7 +204,8 @@ main[tabindex='-1']:focus {
 
 .link-danger {
   color: var(--color-danger-text);
-  font-weight: var(--weight-semibold);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
 }
 
 .link-danger:hover {
@@ -196,7 +216,65 @@ main[tabindex='-1']:focus {
   white-space: pre-wrap;
 }
 
-/* ---- fresh paint (UX §4.4): hold 600 ms, then fade over --dur-highlight ---- */
+.caption {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-text-subtle);
+}
+
+/* ---- ambient background (UX §1.3): light fields + blueprint grid -------- */
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient__fields {
+  position: absolute;
+  inset: -18%;
+  background:
+    radial-gradient(38% 42% at 16% 10%, var(--bg-field-a), transparent 70%),
+    radial-gradient(34% 38% at 88% 4%, var(--bg-field-b), transparent 70%),
+    radial-gradient(46% 40% at 64% 104%, var(--bg-field-c), transparent 70%);
+  animation: ambient-drift var(--dur-ambient) var(--ease-standard) infinite alternate;
+  will-change: transform;
+}
+
+.ambient--calm .ambient__fields {
+  opacity: var(--bg-public-dose);
+}
+
+.ambient__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--bg-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-major) 1px, transparent 1px),
+    linear-gradient(var(--bg-grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-minor) 1px, transparent 1px);
+  background-size:
+    var(--bg-grid-major-size) var(--bg-grid-major-size),
+    var(--bg-grid-major-size) var(--bg-grid-major-size),
+    var(--bg-grid-minor-size) var(--bg-grid-minor-size),
+    var(--bg-grid-minor-size) var(--bg-grid-minor-size);
+  background-position: -1px -1px;
+  -webkit-mask-image: radial-gradient(130% 95% at 50% 0%, #000 30%, transparent 88%);
+  mask-image: radial-gradient(130% 95% at 50% 0%, #000 30%, transparent 88%);
+}
+
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 1.5%, 0) scale(1.06);
+  }
+}
+
+/* ---- live ping (UX §4.4): cyan wash holds 600 ms, then fades ----------- */
 
 .is-fresh {
   animation: fresh-paint calc(600ms + var(--dur-highlight)) linear;
@@ -212,9 +290,11 @@ main[tabindex='-1']:focus {
   }
 }
 
+/* ---- shared keyframes ----------------------------------------------------- */
+
 @keyframes spin {
   to {
-    transform: rotate(360deg);
+    transform: rotate(1turn);
   }
 }
 
@@ -229,4 +309,148 @@ main[tabindex='-1']:focus {
     opacity: 0;
     transform: translateY(var(--motion-distance));
   }
+}
+
+@keyframes ping {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.32);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fade-in-to {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes power-on {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance)) scale(0.985);
+    filter: blur(var(--motion-blur));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.bump {
+  animation: bump 460ms var(--ease-snap);
+}
+
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw var(--dur-draw) var(--ease-out) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fade-in-to var(--dur-draw) var(--ease-out) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* ---- reduced motion + hidden tab (UX §13) ---------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient__fields,
+  .radar__sweep,
+  .blip,
+  .dot::after,
+  .autopilot,
+  .car--alarm::after,
+  .tl-now-halo,
+  .target.is-scanning .reticle,
+  .plate--scanning > .reticle,
+  .bump,
+  .count-badge.bump,
+  .alarm-banner.is-entering,
+  .alarm-banner.is-entering::after,
+  .alarm-banner.is-entering .siren svg {
+    animation: none !important;
+  }
+  .spinner {
+    animation: spin 1.6s linear infinite !important;
+  }
+  .radar__sweep {
+    opacity: 0.35;
+    transform: rotate(300deg);
+  }
+  .car--alarm::after {
+    opacity: 0.8;
+    transform: scale(1.12);
+  }
+  .spot::before,
+  .spot::after {
+    display: none;
+  }
+  .takeover.is-on {
+    animation: none !important;
+    opacity: 1;
+  }
+  html[data-wall] .takeover.is-residual {
+    animation: none !important;
+    opacity: 0.35;
+  }
+  .draw {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .fade-in {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+html.is-hidden *,
+html.is-hidden *::before,
+html.is-hidden *::after {
+  animation-play-state: paused !important;
+}
+
+/* Low-effects fallback (wall mode under 45 fps, UX §8): opaque glass, no drift, no spotlight. */
+html[data-lowfx] {
+  --glass-bg: rgb(255 255 255 / 0.96);
+  --glass-bg-strong: rgb(255 255 255 / 0.98);
+  --color-nav-bg: rgb(255 255 255 / 0.96);
+}
+
+html[data-lowfx] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-lowfx] .ambient__fields {
+  animation: none;
+}
+
+html[data-lowfx] .spot::before,
+html[data-lowfx] .spot::after {
+  display: none;
 }

@@ -2,6 +2,9 @@ export type WebhookFormat = 'generic' | 'slack' | 'teams';
 
 export const WEBHOOK_FORMATS: readonly WebhookFormat[] = ['generic', 'slack', 'teams'];
 
+export const LOT_CAPACITY_MIN = 1;
+export const LOT_CAPACITY_MAX = 5000;
+
 export interface Config {
   nodeEnv: string;
   port: number;
@@ -16,6 +19,7 @@ export interface Config {
   seedDemoData: boolean;
   webhookUrl: string;
   webhookFormat: WebhookFormat;
+  lotCapacity: number;
   logRequests: boolean;
 }
 
@@ -52,6 +56,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`PORT "${env['PORT']}" is invalid`);
   }
 
+  const lotCapacity = Number(str(env, 'LOT_CAPACITY', '40'));
+  if (!Number.isInteger(lotCapacity) || lotCapacity < LOT_CAPACITY_MIN || lotCapacity > LOT_CAPACITY_MAX) {
+    throw new Error(`LOT_CAPACITY "${env['LOT_CAPACITY']}" must be an integer between ${LOT_CAPACITY_MIN} and ${LOT_CAPACITY_MAX}`);
+  }
+
   const rawFormat = str(env, 'WEBHOOK_FORMAT', 'generic').toLowerCase();
   const webhookFormat = (WEBHOOK_FORMATS as readonly string[]).includes(rawFormat)
     ? (rawFormat as WebhookFormat)
@@ -71,6 +80,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     seedDemoData: bool(env, 'SEED_DEMO_DATA', true),
     webhookUrl: str(env, 'WEBHOOK_URL', ''),
     webhookFormat,
+    lotCapacity,
     logRequests: nodeEnv !== 'test',
   };
 }

@@ -8,6 +8,7 @@ export type ToastTone = 'success' | 'info' | 'warning' | 'danger';
 export interface ToastInput {
   tone: ToastTone;
   message: ReactNode;
+  body?: ReactNode;
   action?: { label: string; to?: string; onClick?: () => void };
 }
 
@@ -32,6 +33,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const regionRef = useRef<HTMLDivElement>(null);
 
   const push = useCallback((t: ToastInput) => {
+    // Wall mode shows error toasts only (UX §11).
+    if (t.tone !== 'danger' && document.documentElement.hasAttribute('data-wall')) return;
     setToasts((prev) => [{ ...t, id: nextId++ }, ...prev].slice(0, MAX));
   }, []);
   const dismiss = useCallback((id: number) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
@@ -63,9 +66,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => void }) {
+function ToastView({ toast, onDismiss: remove }: { toast: ToastItem; onDismiss: () => void }) {
   const { t } = useTranslation();
   const [paused, setPaused] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const removeRef = useRef(remove);
+  removeRef.current = remove;
+  // Exit: slide right + fade (UX §6 Toast), then remove.
+  const onDismiss = useCallback(() => {
+    setLeaving(true);
+    window.setTimeout(() => removeRef.current(), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 220);
+  }, []);
   const remaining = useRef(toast.tone === 'danger' ? 8000 : 5000);
   const startedAt = useRef(0);
 
@@ -82,7 +93,7 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
   const Icon = ICONS[toast.tone];
   return (
     <div
-      className={`toast toast--${toast.tone}`}
+      className={`toast toast--${toast.tone}${leaving ? ' is-leaving' : ''}`}
       role={toast.tone === 'danger' ? 'alert' : 'status'}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -91,7 +102,8 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
     >
       <Icon size={20} aria-hidden="true" className="toast__icon" />
       <div className="toast__content">
-        <div className="toast__message">{toast.message}</div>
+        <div className="toast__title">{toast.message}</div>
+        {toast.body && <div className="toast__body">{toast.body}</div>}
         {toast.action &&
           (toast.action.to ? (
             <Link

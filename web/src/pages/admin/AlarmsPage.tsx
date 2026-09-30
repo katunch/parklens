@@ -22,6 +22,7 @@ import { formatPlate } from '../../lib/plate';
 import { useFmt } from '../../lib/timezone';
 import { PAGE_SIZE, useUrlState } from '../../lib/urlState';
 import { useAlarmActions } from '../../live/AlarmActions';
+import { useDossier } from '../../dossier/PlateDossier';
 
 type StatusFilter = AlarmStatus | 'all';
 
@@ -36,9 +37,10 @@ function ResolutionNote({ note }: { note: string }) {
 
 function PlateCell({ alarm }: { alarm: Alarm }) {
   const { t } = useTranslation();
+  const dossier = useDossier();
   return (
     <div className="stack-xs">
-      <PlateChip plate={alarm.plate} size="md" />
+      <PlateChip plate={alarm.plate} size="md" state={alarm.status === 'open' ? 'denied' : undefined} onClick={() => dossier.open(alarm.plate)} ariaLabel={t('dossier.label', { plate: formatPlate(alarm.plate) })} />
       {alarm.previousAlarmCount > 0 && <span className="text-warning text-sm">{t('alarms.previous', { count: alarm.previousAlarmCount })}</span>}
       <Link to={`/admin/activity?tab=log&plate=${encodeURIComponent(alarm.plate)}`} className="text-sm">
         {t('alarms.plateHistory')}
@@ -79,6 +81,7 @@ export default function AlarmsPage() {
   const isFresh = useFresh();
   const reducedMotion = usePrefersReducedMotion();
   const { openResolve } = useAlarmActions();
+  const dossier = useDossier();
 
   const statusParam = url.get('status', 'open');
   const status: StatusFilter = statusParam === 'resolved' || statusParam === 'all' ? statusParam : 'open';
@@ -138,7 +141,7 @@ export default function AlarmsPage() {
   const renderCard = (a: Alarm) => (
     <>
       <div className="card-row__top">
-        <PlateChip plate={a.plate} size="md" />
+        <PlateChip plate={a.plate} size="md" state={a.status === 'open' ? 'denied' : undefined} onClick={() => dossier.open(a.plate)} />
         <AlarmStatusBadge status={a.status} />
       </div>
       <div className="card-row__body">
@@ -151,7 +154,8 @@ export default function AlarmsPage() {
             {t('common.fields.gate')} {a.gateId}
           </span>
         )}
-        <WebhookStatusIcon status={a.webhookStatus} error={a.webhookError} />
+        {/* A bare dash reads as a stray glyph on a card; "skipped" only shows in the table column. */}
+        {a.webhookStatus !== 'skipped' && <WebhookStatusIcon status={a.webhookStatus} error={a.webhookError} />}
       </div>
       <div className="card-row__body inline-badges">
         {a.status === 'open' && a.isStillParked && <StillParkedBadge />}

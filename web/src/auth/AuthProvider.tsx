@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { configureClient } from '../api/client';
 import { api } from '../api/endpoints';
 import type { Admin } from '../api/types';
+import { resetDismissed } from '../lib/dismissed';
 import { STORAGE_KEYS, storage } from '../lib/storage';
 
 export type SessionEnd = 'expired' | 'logout' | null;
@@ -41,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenRef.current = null;
     storage.local.remove(STORAGE_KEYS.token);
     storage.session.remove(STORAGE_KEYS.dismissedAlarms);
+    // Autopilot and wall mode never outlive the session (UX §11, §12).
+    storage.session.remove(STORAGE_KEYS.autopilot);
+    resetDismissed();
     setToken(null);
     setAdmin(null);
     // Let the admin tree unmount first, then drop cached admin data.
@@ -56,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession, navigate]);
 
   const logout = useCallback(() => {
+    // Wall mode survives a token expiry (the kiosk logs back in), not a logout (UX §11).
+    storage.session.remove(STORAGE_KEYS.wall);
     setSessionEnd('logout');
     clearSession();
     if (!window.location.pathname.startsWith('/admin')) navigate('/login', { replace: true, state: { loggedOut: true } });

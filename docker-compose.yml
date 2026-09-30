@@ -32,6 +32,7 @@ services:
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
       WEBHOOK_URL: ${WEBHOOK_URL:-}
       WEBHOOK_FORMAT: ${WEBHOOK_FORMAT:-generic}
+      LOT_CAPACITY: ${LOT_CAPACITY:-40}
     depends_on:
       db:
         condition: service_healthy

@@ -120,6 +120,36 @@ export interface DashboardSummary {
   pendingRequests: number;
   entriesToday: number;
   activePermitsToday: number;
+  /** v2: lot capacity (settings.lot.capacity). */
+  capacity: number;
+}
+
+/** v2 (ARCHITECTURE §5.8): one bucket per local hour of today (23/25 on DST days). */
+export interface TimelineBucket {
+  hour: number;
+  /** ISO UTC instant the bucket starts — the key (hour 2 can repeat on DST days). */
+  start: string;
+  entries: number;
+  exits: number;
+  denied: number;
+  /** Cars parked at bucket end (current hour: now); null for future hours. */
+  occupancy: number | null;
+}
+
+export interface DashboardTimeline {
+  date: string;
+  timezone: string;
+  currentHour: number;
+  buckets: TimelineBucket[];
+}
+
+export interface GateStatus {
+  gateId: string | null;
+  lastEventAt: string;
+  lastDirection: Direction;
+  lastPlate: string;
+  eventsToday: number;
+  deniedToday: number;
 }
 
 export interface WebhookSettings {
@@ -128,10 +158,21 @@ export interface WebhookSettings {
   format: WebhookFormat;
 }
 
+export interface LotSettings {
+  capacity: number;
+}
+
 export interface Settings {
   webhook: WebhookSettings;
+  lot: LotSettings;
   timezone: string;
   gateApiKeyHint: string;
+}
+
+/** PUT /api/settings: webhook only, lot only, or both. */
+export interface SettingsInput {
+  webhook?: WebhookSettings;
+  lot?: LotSettings;
 }
 
 export interface WebhookTestResult {

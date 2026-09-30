@@ -1,0 +1,2735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command center – ParkLens (v2 prototype)</title>
+<meta name="description" content="ParkLens v2 hi-fi prototype: daylight command center with live gate scanner, lot map, radar, alarm takeover and command palette. Visual target for the frontend port.">
+<!-- Prototype only: the app self-hosts these via Fontsource (@fontsource/space-grotesk/700.css, @fontsource/inter/400.css). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+ * TOKENS: verbatim copy of web/src/styles/tokens.css
+ * ===================================================================== */
+/*
+ * ParkLens design tokens · v2 "Daylight command center"
+ * ------------------------------------------------------
+ * Source of truth for colour, type, spacing, radii, elevation/glow, glass, background,
+ * motion, z-index and layout. Spec: docs/UX.md (§1 direction, §6 components, §13 effects).
+ * Visual target: docs/design/command-center.html.
+ *
+ * Layers
+ *   1. Primitives  (--c-*)      raw palette. Do NOT use in components.
+ *   2. Semantic    (--color-*, --glass-*, --glow-*, --bg-*, --chart-*, --plate-*, --cc-*)
+ *      the only thing components use.
+ *   v1 semantic names are kept wherever the meaning is unchanged (migration aid).
+ *
+ * Theme: predominantly LIGHT. Dark is an accent only: the command strip, the gate
+ * scanner instrument, tooltips, the parking-guidance readout (tokens --color-dark-*).
+ *
+ * Fonts (self-hosted, only these two files; see UX.md §1.2):
+ *   import '@fontsource/space-grotesk/700.css';   // headings, numbers, labels, buttons, nav, plates
+ *   import '@fontsource/inter/400.css';           // body text, descriptions, inputs
+ * Space Grotesk is only ever 700, Inter only ever 400. `font-synthesis: none` below stops the
+ * browser from faking other weights, so a stray `font-weight: 600` on Inter renders as 400.
+ *
+ * Contrast (WCAG 2.2 AA, verified):
+ *   text / surface, bg            17.1 / 15.8 : 1
+ *   text-muted / surface, bg, sunken  7.6 / 7.0 / 6.5 : 1
+ *   text-subtle / surface, bg     5.3 / 4.9 : 1   (not on sunken, not on glass < .72 alpha)
+ *   border-input / surface, bg    3.5 / 3.2 : 1   (non-text 3:1)
+ *   white / primary, danger-solid, success-solid   6.0 / 4.8 / 5.0 : 1
+ *   *-text / *-bg (status)        >= 5.2 : 1
+ *   dark: text / muted / subtle on --color-dark-bg   15.2 / 7.6 / 5.3 : 1
+ *   dark glows used as text (cyan, green, red, amber) on --color-dark-bg  >= 6.3 : 1
+ */
+
+:root {
+  color-scheme: light;
+  font-synthesis: none; /* never fake bold/italic: only SG 700 + Inter 400 are loaded */
+
+  /* ======================================================================
+   * 1. PRIMITIVES
+   * ==================================================================== */
+
+  /* Slate-blue neutrals (cool, blueprint paper → night ink) */
+  --c-slate-0: #ffffff;
+  --c-slate-25: #fafbfd;
+  --c-slate-50: #f3f6fa;   /* page */
+  --c-slate-100: #e9eef5;  /* sunken, lot surface */
+  --c-slate-150: #dfe6ef;  /* hairlines */
+  --c-slate-200: #cfd8e3;  /* borders */
+  --c-slate-300: #a7b4c6;  /* decorative, disabled text */
+  --c-slate-400: #7c8ba0;  /* input borders (3:1) */
+  --c-slate-500: #5d6c82;  /* subtle text */
+  --c-slate-600: #46556b;  /* muted text */
+  --c-slate-700: #334155;  /* secondary text */
+  --c-slate-800: #1e2a3b;
+  --c-slate-900: #101c2e;  /* body text / ink */
+  --c-slate-950: #0a1322;  /* plate ink */
+
+  /* Night (dark accent surfaces only) */
+  --c-night-900: #0d1829;  /* strip, scanner, tooltip */
+  --c-night-850: #12203a;
+  --c-night-800: #15243a;  /* raised on dark */
+  --c-night-700: #213350;
+  --c-night-text: #e6eef8;
+  --c-night-muted: #9aabc3;
+  --c-night-subtle: #7b8da8;
+
+  /* Signal blue (brand, actions) */
+  --c-blue-50: #edf3ff;
+  --c-blue-100: #dce7ff;
+  --c-blue-200: #b9ceff;
+  --c-blue-300: #8db0ff;
+  --c-blue-400: #6e9bff;   /* blue on dark */
+  --c-blue-500: #316bff;   /* glow, data */
+  --c-blue-600: #1f56e6;   /* primary */
+  --c-blue-700: #1845b8;
+  --c-blue-800: #143a94;
+
+  /* Scan cyan (live data, scan beam, radar) — graphics; text uses 700 */
+  --c-cyan-50: #e4f8fc;
+  --c-cyan-200: #a5ebf7;
+  --c-cyan-300: #3fd8f5;   /* cyan on dark */
+  --c-cyan-500: #06afd4;
+  --c-cyan-700: #0a6f87;
+
+  /* Green: valid permit / allowed */
+  --c-green-50: #e7f7ee;
+  --c-green-200: #a6e6c2;
+  --c-green-300: #3ddc97;  /* green on dark / glow */
+  --c-green-500: #16b364;
+  --c-green-600: #0a7f4f;
+  --c-green-700: #08744a;
+
+  /* Amber: waiting / needs checking */
+  --c-amber-50: #fff4e2;
+  --c-amber-200: #ffd89a;
+  --c-amber-300: #ffb547;  /* amber on dark */
+  --c-amber-500: #f59e0b;
+  --c-amber-600: #b86500;
+  --c-amber-700: #9a5200;
+  --c-amber-800: #6b3a00;
+
+  /* Red: car without permit / destructive */
+  --c-red-50: #ffefed;
+  --c-red-100: #ffe1de;
+  --c-red-200: #ffbdb7;
+  --c-red-300: #ff6a5c;    /* red on dark / glow */
+  --c-red-500: #f0443a;
+  --c-red-600: #d92d20;
+  --c-red-700: #b42318;
+  --c-red-800: #8f1d14;
+
+  /* ======================================================================
+   * 2. SEMANTIC COLOURS
+   * ==================================================================== */
+
+  /* Surfaces */
+  --color-bg: var(--c-slate-50);
+  --color-surface: var(--c-slate-0);
+  --color-surface-sunken: var(--c-slate-100);
+  --color-surface-hover: #f6f8fc;
+  --color-surface-selected: var(--c-blue-50);
+  --color-overlay: rgb(16 28 46 / 0.32);          /* dialog/palette scrim (plus blur) */
+
+  /* Text */
+  --color-text: var(--c-slate-900);
+  --color-text-strong: var(--c-slate-950);
+  --color-text-secondary: var(--c-slate-700);
+  --color-text-muted: var(--c-slate-600);
+  --color-text-subtle: var(--c-slate-500);
+  --color-text-disabled: var(--c-slate-300);
+  --color-text-inverse: var(--c-slate-0);
+  --color-placeholder: var(--c-slate-500);
+
+  /* Lines */
+  --color-border: var(--c-slate-200);
+  --color-border-subtle: var(--c-slate-150);
+  --color-border-input: var(--c-slate-400);
+  --color-border-input-hover: var(--c-slate-600);
+
+  /* Brand / interactive */
+  --color-primary: var(--c-blue-600);
+  --color-primary-hover: var(--c-blue-700);
+  --color-primary-active: var(--c-blue-800);
+  --color-primary-subtle: var(--c-blue-50);
+  --color-primary-border: var(--c-blue-200);
+  --color-on-primary: var(--c-slate-0);
+  --color-link: var(--c-blue-600);
+  --color-link-hover: var(--c-blue-700);
+
+  /* Live data (scan beam, radar, occupancy line, live ping) */
+  --color-live: var(--c-cyan-500);
+  --color-live-text: var(--c-cyan-700);
+  --color-live-subtle: var(--c-cyan-50);
+
+  /* Focus */
+  --color-focus: var(--c-blue-600);
+  --color-focus-on-dark: var(--c-cyan-300);
+  --color-focus-on-danger: var(--c-slate-0);
+
+  /* Status: success (valid permit, authorized, approved) */
+  --color-success-bg: var(--c-green-50);
+  --color-success-border: var(--c-green-200);
+  --color-success-text: var(--c-green-700);
+  --color-success-solid: var(--c-green-600);
+  --color-on-success: var(--c-slate-0);
+
+  /* Status: warning (pending, date passed, notification failed, silent gate) */
+  --color-warning-bg: var(--c-amber-50);
+  --color-warning-border: var(--c-amber-200);
+  --color-warning-text: var(--c-amber-700);
+  --color-warning-solid: var(--c-amber-600);
+  --color-warning-pill-bg: var(--c-amber-200);
+  --color-warning-pill-text: var(--c-amber-800);
+
+  /* Status: danger (open alarm, unauthorized, destructive, errors) */
+  --color-danger-bg: var(--c-red-50);
+  --color-danger-border: var(--c-red-200);
+  --color-danger-text: var(--c-red-700);
+  --color-danger-solid: var(--c-red-600);
+  --color-danger-solid-hover: var(--c-red-700);
+  --color-danger-solid-active: var(--c-red-800);
+  --color-on-danger: var(--c-slate-0);
+  --color-on-danger-muted: var(--c-red-100);
+
+  /* Status: info */
+  --color-info-bg: var(--c-blue-50);
+  --color-info-border: var(--c-blue-200);
+  --color-info-text: var(--c-blue-700);
+  --color-info-solid: var(--c-blue-600);
+
+  /* Status: neutral (rejected, revoked, resolved, check-out) */
+  --color-neutral-bg: var(--c-slate-100);
+  --color-neutral-border: var(--c-slate-200);
+  --color-neutral-text: var(--c-slate-700);
+  --color-neutral-solid: var(--c-slate-600);
+
+  /* Live row "ping" (v1 "fresh paint"), fades to transparent */
+  --color-highlight: var(--c-cyan-50);
+
+  /* Dark accent surfaces: command strip, gate scanner, tooltips, guidance readout */
+  --color-dark-bg: var(--c-night-900);
+  --color-dark-raised: var(--c-night-800);
+  --color-dark-raised-hover: var(--c-night-700);
+  --color-dark-border: rgb(154 171 195 / 0.16);
+  --color-dark-border-strong: rgb(154 171 195 / 0.28);
+  --color-dark-text: var(--c-night-text);
+  --color-dark-text-muted: var(--c-night-muted);
+  --color-dark-text-subtle: var(--c-night-subtle);
+  --color-dark-live: var(--c-cyan-300);
+  --color-dark-success: var(--c-green-300);
+  --color-dark-danger: var(--c-red-300);
+  --color-dark-warning: var(--c-amber-300);
+  --color-dark-primary: var(--c-blue-400);
+
+  /* Navigation (v2: light glass sidebar; names kept from v1) */
+  --color-nav-bg: rgb(255 255 255 / 0.62);
+  --color-nav-border: rgb(16 28 46 / 0.08);
+  --color-nav-text: var(--c-slate-700);
+  --color-nav-text-muted: var(--c-slate-500);
+  --color-nav-text-active: var(--c-blue-700);
+  --color-nav-hover-bg: rgb(31 86 230 / 0.06);
+  --color-nav-active-bg: rgb(31 86 230 / 0.10);
+  --color-nav-marker: var(--c-blue-500);           /* active bar, with --glow-marker */
+  --color-nav-control-bg: rgb(255 255 255 / 0.06); /* LanguageSwitcher container in the (dark) strip */
+  --color-nav-control-selected-bg: rgb(255 255 255 / 0.16);
+
+  /* Switch (light surfaces) */
+  --color-switch-track-off: var(--c-slate-0);
+  --color-switch-border-off: var(--c-slate-400);
+  --color-switch-thumb-off: var(--c-slate-500);
+  --color-switch-track-on: var(--c-blue-600);
+  --color-switch-thumb-on: var(--c-slate-0);
+  /* Switch on dark (command strip) */
+  --color-switch-track-off-dark: var(--c-night-800);
+  --color-switch-border-off-dark: var(--c-night-muted);
+  --color-switch-thumb-off-dark: var(--c-night-muted);
+  --color-switch-track-on-dark: var(--c-cyan-300);
+  --color-switch-thumb-on-dark: var(--c-night-900);
+
+  /* Mobile bottom tab bar (light glass) */
+  --color-tabbar-bg: rgb(255 255 255 / 0.82);
+  --color-tabbar-text: var(--c-slate-600);
+  --color-tabbar-text-active: var(--c-blue-600);
+
+  /* Logo mark: parking-sign square */
+  --color-logo-bg: var(--c-blue-600);
+  --color-logo-fg: var(--c-slate-0);
+
+  /* Charts & instruments */
+  --chart-entries: var(--c-blue-500);
+  --chart-exits: var(--c-slate-300);
+  --chart-denied: var(--c-red-500);
+  --chart-occupancy: var(--c-cyan-500);
+  --chart-occupancy-fill-top: rgb(6 175 212 / 0.22);
+  --chart-occupancy-fill-bottom: rgb(6 175 212 / 0);
+  --chart-capacity: var(--c-slate-400);
+  --chart-grid: rgb(16 28 46 / 0.06);
+  --chart-future: rgb(16 28 46 / 0.04);
+  --chart-now: var(--c-slate-900);
+  --gauge-track: var(--c-slate-150);
+  --gauge-authorized: var(--c-blue-500);
+  --gauge-unauthorized: var(--c-red-500);
+  --gauge-tick: rgb(16 28 46 / 0.22);
+
+  /* Lot map (symbolic slots, not real bays) */
+  --lot-surface: rgb(233 238 245 / 0.7);
+  --lot-marking: var(--c-slate-0);              /* bay lines = white road markings */
+  --lot-aisle-marking: rgb(16 28 46 / 0.14);    /* dashed aisle centre line */
+  --vehicle-permanent: var(--c-blue-100);
+  --vehicle-permanent-edge: var(--c-blue-500);
+  --vehicle-daily: var(--c-cyan-50);
+  --vehicle-daily-edge: var(--c-cyan-500);      /* dashed outline = visitor/day permit */
+  --vehicle-unauthorized: var(--c-red-100);
+  --vehicle-unauthorized-edge: var(--c-red-600);
+  --vehicle-label: var(--c-slate-900);
+
+  /* ======================================================================
+   * 3. GLASS, GLOW, BACKGROUND, RETICLE
+   * ==================================================================== */
+
+  /* Glass panels (light). Keep alpha >= .72 under text. */
+  --glass-bg: rgb(255 255 255 / 0.74);
+  --glass-bg-strong: rgb(255 255 255 / 0.9);      /* palette, dialogs, drawer, toasts */
+  --glass-border: rgb(16 28 46 / 0.08);
+  --glass-border-strong: rgb(16 28 46 / 0.12);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.9);   /* inner top light edge */
+  --glass-blur: 18px;
+  --glass-saturate: 160%;
+  --glass-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+
+  /* Glows (colour-tinted soft shadows; graphics only) */
+  --glow-primary: 0 0 0 1px rgb(49 107 255 / 0.28), 0 8px 24px -8px rgb(49 107 255 / 0.55);
+  --glow-live: 0 0 12px rgb(6 175 212 / 0.55);
+  --glow-success: 0 0 0 1px rgb(22 179 100 / 0.3), 0 0 22px -2px rgb(22 179 100 / 0.55);
+  --glow-danger: 0 0 0 1px rgb(240 68 58 / 0.35), 0 0 24px -2px rgb(240 68 58 / 0.6);
+  --glow-marker: 0 0 10px rgb(49 107 255 / 0.7);
+  --glow-text-live: 0 0 10px rgb(63 216 245 / 0.65);   /* text-shadow on dark */
+  --glow-text-success: 0 0 12px rgb(61 220 151 / 0.7);
+  --glow-text-danger: 0 0 12px rgb(255 106 92 / 0.75);
+
+  /* Ambient background: blueprint grid + two soft light fields */
+  --bg-grid-minor: rgb(31 86 230 / 0.035);
+  --bg-grid-major: rgb(31 86 230 / 0.065);
+  --bg-grid-minor-size: 24px;
+  --bg-grid-major-size: 120px;
+  --bg-field-a: rgb(49 107 255 / 0.16);    /* top-left */
+  --bg-field-b: rgb(6 175 212 / 0.13);     /* top-right */
+  --bg-field-c: rgb(49 107 255 / 0.08);    /* bottom */
+  --bg-public-dose: 0.6;                   /* public pages: opacity of the light-field layer (calmer dose) */
+
+  /* Spotlight (cursor-follow on glass panels) */
+  --spotlight-fill: rgb(49 107 255 / 0.07);
+  --spotlight-edge: rgb(49 107 255 / 0.5);
+  --spotlight-size: 380px;
+
+  /* Reticle (ANPR lock-on corner brackets) and registration marks */
+  --reticle-size: 10px;
+  --reticle-width: 2px;
+  --reticle-gap: 5px;                       /* distance from the target */
+  --reticle-color: var(--c-blue-500);
+  --reg-mark: rgb(16 28 46 / 0.18);         /* instrument corner registration marks */
+  --reg-mark-size: 9px;
+  --scanline: rgb(154 171 195 / 0.05);      /* scanner stage scanline texture (dark) */
+
+  /* ======================================================================
+   * 4. TYPOGRAPHY
+   * ==================================================================== */
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-plate: var(--font-display);
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; /* API key hint + endpoint URLs only */
+
+  --weight-regular: 400;   /* Inter only */
+  --weight-bold: 700;      /* Space Grotesk only */
+  --weight-medium: 400;    /* v1 alias: renders Inter 400. Migrate to display/bold or body/regular. */
+  --weight-semibold: 700;  /* v1 alias: only valid with --font-display. */
+
+  /* Scale (px): 11 12 13 15 16 18 20 24 32 40 56 72 96 */
+  --text-2xs: 0.6875rem;   --leading-2xs: 1rem;       /* uppercase readouts only (LIVE, ALLOWED) */
+  --text-xs: 0.75rem;      --leading-xs: 1rem;        /* badges, axis labels, captions */
+  --text-sm: 0.8125rem;    --leading-sm: 1.25rem;     /* labels (SG), hints (Inter) */
+  --text-ui: 0.9375rem;    --leading-ui: 1.375rem;    /* admin body, table cells, buttons md */
+  --text-base: 1rem;       --leading-base: 1.5rem;    /* public body, inputs */
+  --text-md: 1.125rem;     --leading-md: 1.5rem;      /* panel titles, lead */
+  --text-lg: 1.25rem;      --leading-lg: 1.625rem;    /* dialog titles */
+  --text-xl: 1.5rem;       --leading-xl: 1.875rem;    /* h1 mobile */
+  --text-2xl: 2rem;        --leading-2xl: 2.25rem;    /* admin h1 */
+  --text-3xl: 2.5rem;      --leading-3xl: 2.75rem;    /* KPI values, public h1 */
+  --text-4xl: 3.5rem;      --leading-4xl: 3.5rem;     /* gauge value */
+  --text-5xl: 4.5rem;      --leading-5xl: 4.5rem;     /* wall KPI values */
+  --text-6xl: 6rem;        --leading-6xl: 6rem;       /* wall gauge value */
+
+  --tracking-tight: -0.02em;   /* SG >= 24px */
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;     /* SG labels <= 13px */
+  --tracking-readout: 0.12em;  /* uppercase readouts only */
+
+  --measure: 68ch;
+
+  /* ======================================================================
+   * 5. SPACING (4px grid) — unchanged from v1
+   * ==================================================================== */
+
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* ======================================================================
+   * 6. RADII (hierarchy: small parts < controls < panels < floating layers)
+   * ==================================================================== */
+
+  --radius-xs: 4px;     /* small plate, kbd */
+  --radius-sm: 6px;     /* badges, chips, tooltips */
+  --radius-md: 10px;    /* buttons, inputs, segmented control, list rows */
+  --radius-lg: 16px;    /* panels / instruments */
+  --radius-xl: 22px;    /* palette, dialogs, drawer, sheets */
+  --radius-pill: 999px;
+
+  /* ======================================================================
+   * 7. ELEVATION (navy-tinted; glass panels combine these with --glass-highlight)
+   * ==================================================================== */
+
+  --shadow-xs: 0 1px 1px rgb(16 28 46 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(16 28 46 / 0.06), 0 1px 1px rgb(16 28 46 / 0.04);
+  --shadow-md: 0 10px 28px -10px rgb(16 28 46 / 0.18), 0 2px 6px rgb(16 28 46 / 0.05);
+  --shadow-lg: 0 28px 64px -20px rgb(16 28 46 / 0.34), 0 6px 16px rgb(16 28 46 / 0.08);
+  --shadow-panel: var(--glass-highlight), 0 1px 2px rgb(16 28 46 / 0.04), 0 14px 36px -22px rgb(24 69 184 / 0.32);
+  --shadow-banner: 0 12px 32px -12px rgb(217 45 32 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  --shadow-tabbar: 0 -1px 0 var(--glass-border), 0 -8px 24px rgb(16 28 46 / 0.06);
+
+  /* ======================================================================
+   * 8. Z-INDEX
+   * ==================================================================== */
+
+  --z-base: 0;
+  --z-ambient: -1;      /* fixed background layers */
+  --z-sticky: 10;
+  --z-nav: 100;         /* sidebar, bottom tab bar */
+  --z-strip: 120;       /* command strip / mobile top bar */
+  --z-banner: 150;      /* alarm banner */
+  --z-dropdown: 200;    /* popovers (autopilot, user menu) */
+  --z-takeover: 250;    /* alarm edge glow: above content, below dialogs, pointer-events: none */
+  --z-overlay: 300;
+  --z-dialog: 310;      /* dialogs, drawer (PlateDossier) */
+  --z-palette: 320;     /* command palette */
+  --z-toast: 400;
+  --z-tooltip: 450;
+  --z-skiplink: 500;
+
+  /* ======================================================================
+   * 9. MOTION (see UX.md §13 effects catalogue)
+   * ==================================================================== */
+
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;      /* hover, press, colour */
+  --dur-base: 220ms;      /* dialog, toast, banner, palette */
+  --dur-slow: 360ms;      /* collapse/expand, tile arrive/leave */
+  --dur-enter: 520ms;     /* instrument power-on (per panel) */
+  --dur-stagger: 60ms;    /* delay step between panels / list items */
+  --dur-draw: 900ms;      /* chart & sparkline draw-on, gauge sweep */
+  --dur-count: 1100ms;    /* number count-up */
+  --dur-scan: 900ms;      /* scan beam pass */
+  --dur-decode: 600ms;    /* plate character decode */
+  --dur-verdict: 320ms;   /* reticle lock + verdict stamp */
+  --dur-highlight: 1800ms;/* live row ping fade (colour only, kept under reduced motion) */
+  --dur-pulse: 1600ms;    /* unauthorized tile / sensor pulse cycle */
+  --dur-takeover: 2400ms; /* alarm edge glow, two pulses */
+  --dur-breathe: 4000ms;  /* wall-mode residual alarm edge */
+  --dur-radar: 8000ms;    /* one radar sweep revolution */
+  --dur-ambient: 48s;     /* light-field drift (alternate) */
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);   /* reticle lock, badge bump (overshoot) */
+  --ease-scan: cubic-bezier(0.45, 0.05, 0.25, 1);   /* beam sweep */
+  /* motion/react springs (JS): enter { stiffness: 380, damping: 32 }, layout { stiffness: 500, damping: 40 } */
+
+  --motion-distance: 10px;  /* rise/slide offset for enter animations */
+  --motion-blur: 6px;       /* blur-in on power-on */
+
+  /* ======================================================================
+   * 10. LAYOUT & CONTROLS
+   * Breakpoints (literal in @media): 480 · 720 (cards/sheets) · 960 (shell) · 1280 (CC 3-col) · 1800 (wall)
+   * ==================================================================== */
+
+  --strip-h: 44px;          /* command strip (desktop) */
+  --sidebar-w: 232px;
+  --topbar-h: 52px;         /* mobile: the strip becomes the top bar */
+  --tabbar-h: 64px;
+  --content-max: 1600px;    /* admin content (command center uses the full width) */
+  --content-narrow: 760px;
+  --public-max: 560px;
+  --dialog-w-sm: 440px;
+  --dialog-w-md: 560px;
+  --drawer-w: 440px;        /* PlateDossier */
+  --palette-w: 680px;
+  --page-pad-x: var(--space-4);
+  --page-pad-y: var(--space-5);
+
+  --control-h-sm: 2rem;     /* 32 */
+  --control-h-md: 2.5rem;   /* 40 */
+  --control-h-lg: 3rem;     /* 48 */
+  --control-pad-x: var(--space-3);
+  --border-w: 1px;
+  --focus-w: 2px;
+  --focus-offset: 2px;
+
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 32px;
+
+  /* Command-center instrument sizing (overridden in wall mode below) */
+  --cc-gap: 16px;
+  --cc-kpi-h: 104px;
+  --cc-kpi-value: var(--text-3xl);
+  --cc-row-main: 400px;     /* gauge / lot map / scanner row (1440×900 fits without scrolling) */
+  --cc-row-lower: 224px;    /* timeline / alarms row */
+  --cc-gauge-d: 232px;
+  --cc-gauge-value: var(--text-4xl);
+  --cc-bay-w: 44px;
+  --cc-bay-h: 50px;
+  --cc-aisle-h: 22px;
+  --cc-feed-plate: var(--plate-lg-font);
+  --cc-panel-pad: var(--space-5);
+
+  /* ======================================================================
+   * 11. PLATE CHIP (signature; see UX.md §6 PlateChip)
+   * Swiss plate: white field, ink characters, outer edge + inset rim, small Swiss shield (md+).
+   * Always light, on every surface (also on the dark scanner and the red banner).
+   * ==================================================================== */
+
+  --plate-bg: #ffffff;               /* flat colour: also used for the rim gap ring */
+  --plate-fill: linear-gradient(180deg, #ffffff 0%, #f2f5f9 100%); /* chip/input background */
+  --plate-ink: var(--c-slate-950);
+  --plate-edge: var(--c-slate-900);
+  --plate-rim: var(--c-slate-900);
+  --plate-rim-gap: 2px;
+  --plate-font: var(--font-display);
+  --plate-weight: var(--weight-bold);
+  --plate-tracking: 0.05em;
+  --plate-shadow: 0 1px 2px rgb(16 28 46 / 0.14), 0 6px 14px -8px rgb(16 28 46 / 0.35);
+  --plate-shield: var(--c-red-600);  /* Swiss shield mark (md, lg, xl) */
+  --plate-muted-opacity: 0.55;       /* historic (left lot, revoked context) */
+
+  /* sizes: font-size / height / horizontal padding / radius */
+  --plate-sm-font: 0.75rem;    --plate-sm-h: 22px;  --plate-sm-pad: 6px;   --plate-sm-radius: var(--radius-xs);
+  --plate-md-font: 0.9375rem;  --plate-md-h: 28px;  --plate-md-pad: 9px;   --plate-md-radius: 6px;
+  --plate-lg-font: 1.3125rem;  --plate-lg-h: 40px;  --plate-lg-pad: 13px;  --plate-lg-radius: 8px;
+  --plate-xl-font: 2rem;       --plate-xl-h: 60px;  --plate-xl-pad: 20px;  --plate-xl-radius: 10px;
+
+  /* PlateInput */
+  --plate-input-font: 1.75rem;
+  --plate-input-h: 4rem;
+  --plate-input-pad: 18px;
+  --plate-input-radius: 12px;
+  --plate-input-rim-focus: var(--c-blue-600);
+  --plate-input-rim-error: var(--c-red-600);
+}
+
+/* Below the shell breakpoint the strip becomes the mobile top bar */
+@media (max-width: 959px) {
+  :root { --strip-h: var(--topbar-h); }
+}
+
+/* Wider screens: more generous page padding */
+@media (min-width: 960px) {
+  :root {
+    --page-pad-x: var(--space-6);
+    --page-pad-y: var(--space-5);
+  }
+}
+
+/* Wall mode (kiosk). Set data-wall on <html>. Tuned for 1920×1080 viewed from ~3 m. */
+:root[data-wall] {
+  --strip-h: 56px;
+  --cc-gap: 20px;
+  --cc-kpi-h: 148px;
+  --cc-kpi-value: var(--text-5xl);
+  --cc-row-main: minmax(0, 1.55fr);  /* wall: the grid fills the viewport height */
+  --cc-row-lower: minmax(0, 1fr);
+  --cc-gauge-d: 320px;
+  --cc-gauge-value: var(--text-6xl);
+  --cc-bay-w: 80px;
+  --cc-bay-h: 76px;
+  --cc-aisle-h: 30px;
+  --cc-feed-plate: var(--plate-xl-font);
+  --cc-panel-pad: var(--space-6);
+  --page-pad-x: var(--space-8);
+  --page-pad-y: var(--space-6);
+}
+
+/* Touch devices: 44px minimum targets */
+@media (pointer: coarse) {
+  :root {
+    --control-h-sm: 2.25rem;
+    --control-h-md: 2.75rem;
+  }
+}
+
+/* Reduced motion: no movement, no ambient loops; colour fades and progress spinners stay */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 1ms;
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-enter: 1ms;
+    --dur-stagger: 0ms;
+    --dur-draw: 1ms;
+    --dur-count: 1ms;
+    --dur-scan: 1ms;
+    --dur-decode: 1ms;
+    --dur-verdict: 1ms;
+    --dur-pulse: 1ms;
+    --dur-takeover: 1ms;
+    --dur-breathe: 1ms;
+    --dur-radar: 1ms;
+    --motion-distance: 0px;
+    --motion-blur: 0px;
+  }
+}
+
+/* Engines without backdrop-filter: make glass opaque enough to stay legible */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-bg: rgb(255 255 255 / 0.94);
+    --glass-bg-strong: rgb(255 255 255 / 0.98);
+    --color-nav-bg: rgb(255 255 255 / 0.94);
+    --color-tabbar-bg: rgb(255 255 255 / 0.98);
+  }
+}
+
+/* =====================================================================
+ * PROTOTYPE STYLES (component layer). Only semantic tokens from above.
+ * Port target: web/src/styles/*.css
+ * ===================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--strip-h) + 96px); }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-ui);
+  line-height: var(--leading-ui);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, p, ul, ol, figure, dl, dd { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+a { color: var(--color-link); }
+svg { display: block; }
+
+:focus-visible { outline: var(--focus-w) solid var(--color-focus); outline-offset: var(--focus-offset); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip {
+  position: fixed; left: 12px; top: 8px; z-index: var(--z-skiplink);
+  padding: 8px 14px; border-radius: var(--radius-md);
+  background: var(--color-surface); box-shadow: var(--shadow-md);
+  font: var(--weight-bold) var(--text-sm)/1 var(--font-display);
+  transform: translateY(-160%);
+}
+.skip:focus { transform: none; }
+
+/* Type roles ------------------------------------------------------------ */
+.t-display { font-family: var(--font-display); font-weight: var(--weight-bold); }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--color-text-muted); }
+
+/* Icons ----------------------------------------------------------------- */
+.i {
+  width: var(--icon-md); height: var(--icon-md); flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.i--sm { width: var(--icon-sm); height: var(--icon-sm); }
+.i--lg { width: var(--icon-lg); height: var(--icon-lg); }
+
+/* =====================================================================
+ * AMBIENT BACKGROUND: light fields (drifting) + blueprint grid
+ * ===================================================================== */
+.ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.ambient__fields {
+  position: absolute; inset: -18%;
+  background:
+    radial-gradient(38% 42% at 16% 10%, var(--bg-field-a), transparent 70%),
+    radial-gradient(34% 38% at 88% 4%, var(--bg-field-b), transparent 70%),
+    radial-gradient(46% 40% at 64% 104%, var(--bg-field-c), transparent 70%);
+  animation: ambient-drift var(--dur-ambient) var(--ease-standard) infinite alternate;
+  will-change: transform;
+}
+.ambient__grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--bg-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-major) 1px, transparent 1px),
+    linear-gradient(var(--bg-grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-grid-minor) 1px, transparent 1px);
+  background-size:
+    var(--bg-grid-major-size) var(--bg-grid-major-size), var(--bg-grid-major-size) var(--bg-grid-major-size),
+    var(--bg-grid-minor-size) var(--bg-grid-minor-size), var(--bg-grid-minor-size) var(--bg-grid-minor-size);
+  background-position: -1px -1px;
+  -webkit-mask-image: radial-gradient(130% 95% at 50% 0%, #000 30%, transparent 88%);
+          mask-image: radial-gradient(130% 95% at 50% 0%, #000 30%, transparent 88%);
+}
+@keyframes ambient-drift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(2%, 1.5%, 0) scale(1.06); }
+}
+
+/* =====================================================================
+ * COMMAND STRIP (dark accent, global in admin)
+ * ===================================================================== */
+.strip {
+  position: sticky; top: 0; z-index: var(--z-strip);
+  display: flex; align-items: center; gap: var(--space-3);
+  height: var(--strip-h); padding: 0 var(--space-4);
+  color: var(--color-dark-text);
+  background: linear-gradient(180deg, var(--c-night-850), var(--color-dark-bg));
+  box-shadow: 0 1px 0 var(--color-dark-border), 0 8px 24px -12px rgb(13 24 41 / 0.5);
+}
+.strip::after { /* hairline light edge */
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgb(63 216 245 / 0.55) 28%, rgb(110 155 255 / 0.55) 72%, transparent 100%);
+}
+.strip__brand { display: flex; align-items: center; gap: 10px; padding-right: var(--space-2); }
+.strip__name { font: var(--weight-bold) var(--text-ui)/1 var(--font-display); letter-spacing: -0.01em; }
+.strip__sep { width: 1px; height: 20px; background: var(--color-dark-border-strong); }
+.strip__group { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.strip__right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+
+.logo {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px;
+  background: linear-gradient(160deg, var(--c-blue-500), var(--color-logo-bg));
+  color: var(--color-logo-fg); font: var(--weight-bold) 16px/1 var(--font-display);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 0 16px rgb(49 107 255 / 0.55);
+}
+
+/* readouts: uppercase signal labels, the only uppercase text in the product */
+.readout, .autopilot, .strip-alarm { flex: none; }
+.readout {
+  display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px;
+  border-radius: var(--radius-sm); border: 1px solid var(--color-dark-border);
+  font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); letter-spacing: var(--tracking-readout);
+  text-transform: uppercase; color: var(--color-dark-text-muted); white-space: nowrap;
+}
+.readout--live { color: var(--color-dark-success); text-shadow: var(--glow-text-success); }
+.readout--ok .dot { background: var(--color-dark-success); }
+.readout--quiet { border-color: transparent; }
+
+.dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--color-dark-success); flex: none; }
+.dot::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit;
+  animation: ping 2s var(--ease-out) infinite;
+}
+.dot--static::after { display: none; }
+.dot--warn { background: var(--color-dark-warning); }
+.dot--danger { background: var(--color-dark-danger); }
+@keyframes ping { from { transform: scale(1); opacity: 0.7; } to { transform: scale(3.2); opacity: 0; } }
+
+.autopilot {
+  display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px;
+  border-radius: var(--radius-sm); border: 1px solid rgb(63 216 245 / 0.45);
+  font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); letter-spacing: var(--tracking-readout);
+  text-transform: uppercase; color: var(--color-dark-live); text-shadow: var(--glow-text-live);
+  background: repeating-linear-gradient(-45deg, rgb(63 216 245 / 0.16) 0 6px, rgb(63 216 245 / 0.04) 6px 12px);
+  background-size: 17px 17px;
+  animation: stripes 1.1s linear infinite;
+}
+.autopilot[aria-pressed="false"] { display: none; } /* the strip shows autopilot only while it runs */
+@keyframes stripes { to { background-position: 17px 0; } }
+
+.strip-alarm {
+  display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px 0 8px;
+  border-radius: var(--radius-sm); text-decoration: none;
+  background: rgb(255 106 92 / 0.14); border: 1px solid rgb(255 106 92 / 0.5);
+  color: var(--color-dark-danger); text-shadow: var(--glow-text-danger);
+  font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); letter-spacing: var(--tracking-readout); text-transform: uppercase;
+}
+.strip-alarm[hidden] { display: none; }
+
+.strip__search {
+  display: flex; align-items: center; gap: 10px; width: min(340px, 24vw); height: 30px; flex: none; padding: 0 6px 0 10px;
+  border-radius: var(--radius-md); border: 1px solid var(--color-dark-border);
+  background: rgb(255 255 255 / 0.05); color: var(--color-dark-text-muted); font-size: var(--text-sm);
+  transition: background var(--dur-fast), border-color var(--dur-fast);
+}
+.strip__search:hover { background: rgb(255 255 255 / 0.08); border-color: var(--color-dark-border-strong); }
+.strip__search span { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strip :focus-visible { outline-color: var(--color-focus-on-dark); }
+
+.kbd, kbd {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 5px; font: var(--weight-bold) 11px/1 var(--font-display);
+  color: var(--color-text-muted); background: var(--color-surface);
+  border: 1px solid var(--color-border); box-shadow: 0 1px 0 var(--color-border);
+}
+.strip kbd { color: var(--color-dark-text-muted); background: rgb(255 255 255 / 0.06); border-color: var(--color-dark-border); box-shadow: none; }
+
+.clock { display: flex; align-items: baseline; gap: 6px; padding: 0 var(--space-2); }
+.clock__time { font: var(--weight-bold) var(--text-ui)/1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.clock__tz { font-size: var(--text-xs); color: var(--color-dark-text-subtle); }
+
+.icon-btn {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-sm);
+  color: var(--color-dark-text-muted); transition: background var(--dur-fast), color var(--dur-fast);
+}
+.icon-btn:hover { background: var(--color-dark-raised); color: var(--color-dark-text); }
+.icon-btn[aria-pressed="true"] { color: var(--color-dark-live); }
+
+.lang { display: flex; padding: 2px; border-radius: var(--radius-sm); background: var(--color-nav-control-bg); }
+.lang button {
+  height: 24px; padding: 0 8px; border-radius: 4px; color: var(--color-dark-text-muted);
+  font: var(--weight-bold) var(--text-xs)/1 var(--font-display);
+}
+.lang button[aria-pressed="true"] { background: var(--color-nav-control-selected-bg); color: var(--color-dark-text); }
+
+.avatar {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(150deg, var(--c-blue-400), var(--c-blue-700));
+  color: #fff; font: var(--weight-bold) var(--text-xs)/1 var(--font-display);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.08);
+}
+
+/* =====================================================================
+ * SHELL: sidebar (light glass) + main
+ * ===================================================================== */
+.shell {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: calc(100vh - var(--strip-h));
+}
+.sidebar {
+  position: sticky; top: var(--strip-h); align-self: start;
+  height: calc(100vh - var(--strip-h));
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-5) var(--space-3) var(--space-4);
+  background: var(--color-nav-bg);
+  -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  border-right: 1px solid var(--color-nav-border);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.6);
+}
+.nav { display: grid; gap: 2px; }
+.nav a {
+  position: relative; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 10px 0 12px;
+  border-radius: var(--radius-md); text-decoration: none; color: var(--color-nav-text);
+  font: var(--weight-bold) var(--text-ui)/1 var(--font-display); letter-spacing: -0.005em;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.nav a:hover { background: var(--color-nav-hover-bg); color: var(--color-text); }
+.nav a[aria-current="page"] { background: var(--color-nav-active-bg); color: var(--color-nav-text-active); }
+.nav a[aria-current="page"]::before {
+  content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--color-nav-marker); box-shadow: var(--glow-marker);
+}
+.nav .i { width: 18px; height: 18px; }
+.nav__autopilot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-live); box-shadow: var(--glow-live); margin-left: auto; }
+
+.count {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-pill);
+  display: inline-grid; place-items: center;
+  font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); font-variant-numeric: tabular-nums;
+}
+.count--danger { background: var(--color-danger-solid); color: var(--color-on-danger); box-shadow: 0 0 14px rgb(240 68 58 / 0.5); }
+.count--warning { background: var(--color-warning-pill-bg); color: var(--color-warning-pill-text); }
+.count--neutral { background: var(--color-neutral-bg); color: var(--color-neutral-text); }
+.bump { animation: bump 460ms var(--ease-snap); }
+@keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.32); } 100% { transform: scale(1); } }
+
+.sidebar__meter { margin-top: auto; padding: var(--space-3); border-radius: var(--radius-md); background: rgb(255 255 255 / 0.55); border: 1px solid var(--glass-border); }
+.meter__row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.meter__label { font: var(--weight-bold) var(--text-sm)/1 var(--font-display); color: var(--color-text-muted); }
+.meter__value { font: var(--weight-bold) var(--text-ui)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.meter__bar { position: relative; display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--gauge-track); }
+.meter__bar i { display: block; height: 100%; transition: width var(--dur-slow) var(--ease-out); }
+.meter__bar .a { background: var(--gauge-authorized); }
+.meter__bar .u { background: var(--gauge-unauthorized); }
+
+.main { min-width: 0; padding: var(--page-pad-y) var(--page-pad-x) var(--space-10); }
+
+.page-head { display: flex; align-items: flex-end; gap: var(--space-4); margin-bottom: var(--space-4); }
+.page-head h1 { font: var(--weight-bold) var(--text-2xl)/var(--leading-2xl) var(--font-display); letter-spacing: var(--tracking-tight); }
+.page-head p { color: var(--color-text-muted); margin-top: 2px; }
+.page-head__actions { margin-left: auto; display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+
+/* =====================================================================
+ * BUTTONS
+ * ===================================================================== */
+.btn {
+  --btn-h: var(--control-h-md);
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: var(--btn-h); padding: 0 16px; border-radius: var(--radius-md); white-space: nowrap;
+  font: var(--weight-bold) var(--text-ui)/1 var(--font-display); letter-spacing: -0.005em;
+  transition: background var(--dur-fast), box-shadow var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
+  text-decoration: none;
+}
+.btn--sm { --btn-h: var(--control-h-sm); padding: 0 12px; font-size: var(--text-sm); }
+.btn--lg { --btn-h: var(--control-h-lg); padding: 0 20px; font-size: var(--text-base); }
+.btn--icon { width: var(--btn-h); padding: 0; }
+.btn--primary {
+  color: var(--color-on-primary);
+  background: linear-gradient(180deg, var(--c-blue-500), var(--color-primary));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 1px 2px rgb(16 28 46 / 0.2), 0 8px 18px -10px rgb(31 86 230 / 0.8);
+}
+.btn--primary:hover { background: linear-gradient(180deg, var(--c-blue-600), var(--color-primary-hover)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), var(--glow-primary); }
+.btn--primary:active { background: var(--color-primary-active); }
+.btn--secondary {
+  color: var(--color-text); background: rgb(255 255 255 / 0.82);
+  border: 1px solid var(--glass-border-strong); box-shadow: var(--glass-highlight), var(--shadow-xs);
+}
+.btn--secondary:hover { border-color: var(--color-primary-border); color: var(--color-primary); background: #fff; }
+.btn--ghost { color: var(--color-text-secondary); }
+.btn--ghost:hover { background: rgb(16 28 46 / 0.05); color: var(--color-text); }
+.btn--danger {
+  color: var(--color-on-danger);
+  background: linear-gradient(180deg, var(--c-red-500), var(--color-danger-solid));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 1px 2px rgb(16 28 46 / 0.2), 0 8px 18px -10px rgb(217 45 32 / 0.8);
+}
+.btn--danger:hover { background: var(--color-danger-solid-hover); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), var(--glow-danger); }
+.btn--inverse { color: var(--color-danger-text); background: #fff; box-shadow: 0 1px 2px rgb(16 28 46 / 0.2); }
+.btn--inverse:hover { box-shadow: 0 0 0 3px rgb(255 255 255 / 0.35); }
+.btn--on-danger { color: #fff; text-decoration: underline; text-underline-offset: 3px; padding: 0 8px; }
+.btn[disabled], .btn[aria-disabled="true"] {
+  color: var(--color-text-disabled); background: var(--color-surface-sunken); box-shadow: none; border-color: transparent; cursor: not-allowed;
+}
+.btn[aria-busy="true"] { cursor: progress; }
+.btn:focus-visible { outline-offset: 2px; }
+.alarm-banner .btn:focus-visible { outline-color: var(--color-focus-on-danger); }
+
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%; flex: none;
+  border: 2px solid currentColor; border-right-color: transparent; opacity: 0.9;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(1turn); } }
+
+/* =====================================================================
+ * PANELS / INSTRUMENTS (glass + registration marks + spotlight)
+ * ===================================================================== */
+.panel {
+  position: relative; isolation: isolate; min-width: 0;
+  display: flex; flex-direction: column;
+  padding: var(--cc-panel-pad);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+.instrument {
+  --r: var(--reg-mark); --s: var(--reg-mark-size);
+  background:
+    linear-gradient(var(--r), var(--r)) left 8px top 8px / var(--s) 1px no-repeat,
+    linear-gradient(var(--r), var(--r)) left 8px top 8px / 1px var(--s) no-repeat,
+    linear-gradient(var(--r), var(--r)) right 8px top 8px / var(--s) 1px no-repeat,
+    linear-gradient(var(--r), var(--r)) right 8px top 8px / 1px var(--s) no-repeat,
+    linear-gradient(var(--r), var(--r)) left 8px bottom 8px / var(--s) 1px no-repeat,
+    linear-gradient(var(--r), var(--r)) left 8px bottom 8px / 1px var(--s) no-repeat,
+    linear-gradient(var(--r), var(--r)) right 8px bottom 8px / var(--s) 1px no-repeat,
+    linear-gradient(var(--r), var(--r)) right 8px bottom 8px / 1px var(--s) no-repeat,
+    var(--glass-bg);
+}
+/* cursor-follow spotlight: fill + border light */
+.spot::before, .spot::after { content: ""; position: absolute; pointer-events: none; opacity: 0; transition: opacity 400ms var(--ease-standard); }
+.spot::before {
+  inset: 0; border-radius: inherit; z-index: -1;
+  background: radial-gradient(var(--spotlight-size) circle at var(--mx, 50%) var(--my, 50%), var(--spotlight-fill), transparent 62%);
+}
+.spot::after {
+  inset: -1px; border-radius: inherit; padding: 1px;
+  background: radial-gradient(calc(var(--spotlight-size) * 0.6) circle at var(--mx, 50%) var(--my, 50%), var(--spotlight-edge), transparent 60%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+@media (hover: hover) and (pointer: fine) {
+  .spot:hover::before, .spot:hover::after { opacity: 1; }
+}
+
+.panel__head { display: flex; align-items: center; gap: var(--space-3); min-height: 28px; margin-bottom: var(--space-3); }
+.panel__title { font: var(--weight-bold) var(--text-md)/var(--leading-md) var(--font-display); letter-spacing: -0.01em; }
+.panel__meta { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); color: var(--color-text-muted); }
+.panel__link { font: var(--weight-bold) var(--text-sm)/1 var(--font-display); color: var(--color-link); text-decoration: none; }
+.panel__link:hover { color: var(--color-link-hover); text-decoration: underline; text-underline-offset: 3px; }
+.caption { font-size: var(--text-xs); line-height: var(--leading-xs); color: var(--color-text-subtle); }
+
+.legend { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: var(--text-xs); color: var(--color-text-muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+/* =====================================================================
+ * COMMAND CENTER GRID
+ * ===================================================================== */
+.cc {
+  display: grid; gap: var(--cc-gap);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-areas:
+    "k k k k k k k k k k k k"
+    "g g g l l l l l f f f f"
+    "t t t t t t t t a a a a";
+  grid-template-rows: auto var(--cc-row-main) var(--cc-row-lower);
+}
+.cc > .kpis { grid-area: k; }
+.cc > .gauge { grid-area: g; }
+.cc > .lot { grid-area: l; }
+.cc > .scanner { grid-area: f; }
+.cc > .timeline { grid-area: t; }
+.cc > .alarms { grid-area: a; }
+.cc > * { min-height: 0; }
+
+/* power-on sequence (first load only) */
+.cc.is-booting > :not(.kpis), .cc.is-booting .kpi {
+  animation: power-on var(--dur-enter) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-stagger));
+}
+@keyframes power-on {
+  from { opacity: 0; transform: translateY(var(--motion-distance)) scale(0.985); filter: blur(var(--motion-blur)); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+/* ---------------- KPI tiles ---------------- */
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--cc-gap); }
+.kpi {
+  height: var(--cc-kpi-h); padding: 14px 16px 13px 18px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr auto;
+  column-gap: var(--space-2); text-decoration: none; color: inherit;
+}
+.kpi__label { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; font: var(--weight-bold) var(--text-sm)/1.2 var(--font-display); color: var(--color-text-muted); }
+.kpi__label .i { width: 15px; height: 15px; }
+.kpi__value { grid-column: 1; grid-row: 2; align-self: end; white-space: nowrap; font: var(--weight-bold) var(--cc-kpi-value)/1 var(--font-display); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; color: var(--color-text-strong); }
+.kpi__unit { font-size: var(--text-md); letter-spacing: 0; color: var(--color-text-subtle); margin-left: 3px; }
+.kpi__sub { grid-column: 1 / -1; grid-row: 3; margin-top: 6px; font-size: var(--text-sm); line-height: 1.2; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi__sub--danger { color: var(--color-danger-text); }
+.kpi__spark { grid-column: 2; grid-row: 2; align-self: end; width: 88px; height: 34px; margin-bottom: 2px; overflow: visible; }
+.kpi--alarm { border-color: rgb(240 68 58 / 0.32); box-shadow: var(--shadow-panel), 0 0 0 1px rgb(240 68 58 / 0.1), 0 14px 32px -18px rgb(240 68 58 / 0.55); }
+.kpi--alarm .kpi__value { color: var(--color-danger-text); }
+.kpi--alarm .kpi__label { color: var(--color-danger-text); }
+.kpi--alarm .kpi__label .dot { background: var(--c-red-500); }
+.kpi--warn .kpi__label .i { color: var(--color-warning-solid); }
+.kpi:focus-visible { outline-offset: 3px; }
+
+.spark-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.spark-area { opacity: 0.9; }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw var(--dur-draw) var(--ease-out) forwards; animation-delay: var(--d, 0ms); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.fade-in { opacity: 0; animation: fade-in var(--dur-draw) var(--ease-out) forwards; animation-delay: var(--d, 0ms); }
+@keyframes fade-in { to { opacity: 1; } }
+
+/* ---------------- Occupancy gauge + radar + lens ---------------- */
+.gauge__body { position: relative; display: grid; place-items: center; margin: 2px auto 0; width: var(--cc-gauge-d); height: var(--cc-gauge-d); }
+.gauge__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.gauge__arc { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray var(--dur-draw) var(--ease-out); }
+.gauge__arc--track { stroke: var(--gauge-track); }
+.gauge__arc--a { stroke: url(#g-auth); filter: drop-shadow(0 0 5px rgb(49 107 255 / 0.45)); }
+.gauge__arc--u { stroke: var(--gauge-unauthorized); filter: drop-shadow(0 0 6px rgb(240 68 58 / 0.6)); }
+.gauge__tick { stroke: var(--gauge-tick); stroke-width: 1; }
+.gauge__tick--major { stroke: rgb(16 28 46 / 0.4); stroke-width: 1.5; }
+
+.radar { position: absolute; inset: 15.5%; border-radius: 50%; overflow: hidden;
+  background:
+    radial-gradient(circle, rgb(6 175 212 / 0.06) 0 33%, transparent 33.5%),
+    radial-gradient(circle at 50% 50%, rgb(237 243 255 / 0.9), rgb(220 231 255 / 0.55));
+  box-shadow: inset 0 0 0 1px rgb(31 86 230 / 0.12), inset 0 0 30px rgb(49 107 255 / 0.12);
+}
+.radar__rings { position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 32.6%, rgb(31 86 230 / 0.14) 33%, transparent 33.6%),
+    radial-gradient(circle, transparent 65.8%, rgb(31 86 230 / 0.14) 66.3%, transparent 66.8%),
+    linear-gradient(rgb(31 86 230 / 0.1), rgb(31 86 230 / 0.1)) center / 1px 100% no-repeat,
+    linear-gradient(rgb(31 86 230 / 0.1), rgb(31 86 230 / 0.1)) center / 100% 1px no-repeat;
+}
+.radar__sweep {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg 280deg, rgb(6 175 212 / 0.04) 300deg, rgb(6 175 212 / 0.3) 357deg, rgb(63 216 245 / 0.95) 359.3deg, transparent 360deg);
+  animation: sweep var(--dur-radar) linear infinite;
+  will-change: transform;
+}
+@keyframes sweep { to { transform: rotate(1turn); } }
+.blip {
+  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: var(--color-live); box-shadow: 0 0 8px rgb(6 175 212 / 0.9);
+  transform: rotate(var(--a)) translateY(calc(var(--r) * -1)) ;
+  opacity: var(--o, 0.5);
+  animation: blip var(--dur-radar) linear infinite; animation-delay: var(--delay);
+}
+.blip--out { background: var(--c-slate-400); box-shadow: 0 0 6px rgb(124 139 160 / 0.8); }
+.blip--denied { background: var(--c-red-500); box-shadow: 0 0 10px rgb(240 68 58 / 0.95); }
+@keyframes blip {
+  0%   { opacity: 1; scale: 1.7; }
+  18%  { opacity: var(--o, 0.5); scale: 1; }
+  100% { opacity: var(--o, 0.5); scale: 1; }
+}
+.lens {
+  position: relative; z-index: 1; display: grid; place-items: center; text-align: center;
+  width: 46%; aspect-ratio: 1; border-radius: 50%;
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: inset 0 1px 0 #fff, 0 0 0 1px rgb(16 28 46 / 0.06), 0 10px 24px -12px rgb(24 69 184 / 0.4);
+}
+.lens__value { font: var(--weight-bold) var(--cc-gauge-value)/0.9 var(--font-display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.lens__cap { display: block; margin-top: 2px; font: var(--weight-bold) var(--text-sm)/1 var(--font-display); color: var(--color-text-muted); }
+.gauge__foot { margin-top: auto; display: grid; gap: var(--space-2); }
+.gauge__legend { display: flex; justify-content: space-between; gap: 12px; }
+.gauge__legend div { display: flex; align-items: center; gap: 7px; font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; }
+.gauge__legend b { margin-left: 2px; font: var(--weight-bold) var(--text-ui)/1 var(--font-display); color: var(--color-text); font-variant-numeric: tabular-nums; }
+
+/* parking-guidance plaque (dark accent: "P 17 free") */
+.guide {
+  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 3px; border-radius: 8px;
+  background: var(--color-dark-bg); color: var(--color-dark-text-muted);
+  box-shadow: inset 0 0 0 1px var(--color-dark-border), 0 6px 14px -8px rgb(13 24 41 / 0.6);
+  font: var(--weight-bold) var(--text-xs)/1 var(--font-display);
+}
+.guide__p { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 5px; background: var(--color-logo-bg); color: #fff; font-size: 14px; }
+.guide__n { font-size: 18px; color: var(--color-dark-success); text-shadow: var(--glow-text-success); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+
+/* ---------------- Lot map (symbolic slots) ---------------- */
+.lotmap { position: relative; flex: 1; display: grid; align-content: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--lot-surface); box-shadow: inset 0 0 0 1px rgb(16 28 46 / 0.05); }
+.lot-block { display: grid; grid-template-rows: var(--cc-bay-h) var(--cc-aisle-h) var(--cc-bay-h); }
+.bays { display: grid; grid-template-columns: repeat(10, minmax(0, var(--cc-bay-w))); justify-content: center; }
+.bay {
+  position: relative; display: grid; place-items: center;
+  border-left: 2px solid var(--lot-marking);
+}
+.bay:last-child { border-right: 2px solid var(--lot-marking); }
+.bays--top .bay { border-top: 2px solid var(--lot-marking); }
+.bays--bottom .bay { border-bottom: 2px solid var(--lot-marking); }
+.aisle { position: relative; display: grid; align-items: center; }
+.aisle::before { content: ""; height: 2px; margin: 0 28px 0 6px; background: repeating-linear-gradient(90deg, var(--lot-aisle-marking) 0 14px, transparent 14px 26px); }
+.aisle::after { /* painted drive-direction arrow */
+  content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; margin-top: -5px;
+  border-top: 2px solid var(--lot-aisle-marking); border-right: 2px solid var(--lot-aisle-marking); transform: rotate(45deg);
+}
+
+.car {
+  position: relative; width: 72%; height: 82%; border-radius: 8px 8px 6px 6px;
+  display: grid; place-items: center; cursor: pointer;
+  background-color: var(--vehicle-permanent); border: 1.5px solid var(--vehicle-permanent-edge);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.65), rgb(255 255 255 / 0) 70%);
+  font: var(--weight-bold) 10px/1 var(--font-display); color: var(--vehicle-label); letter-spacing: 0.04em;
+  box-shadow: 0 3px 8px -4px rgb(24 69 184 / 0.5);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast);
+}
+.car::before { /* windscreen, facing the aisle */
+  content: ""; position: absolute; left: 14%; right: 14%; height: 18%; border-radius: 3px;
+  background: rgb(255 255 255 / 0.75); box-shadow: inset 0 0 0 1px rgb(16 28 46 / 0.08);
+}
+.bays--top .car::before { bottom: 12%; }
+.bays--bottom .car::before { top: 12%; }
+.bays--top .car { border-radius: 6px 6px 9px 9px; }
+.car--daily { background-color: var(--vehicle-daily); border: 1.5px dashed var(--vehicle-daily-edge); box-shadow: 0 3px 8px -4px rgb(6 175 212 / 0.55); }
+.car--unauth { background-color: var(--vehicle-unauthorized); border-color: var(--vehicle-unauthorized-edge); color: var(--color-danger-text); box-shadow: 0 0 14px -2px rgb(240 68 58 / 0.6); }
+.car--unauth::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 11px; border: 2px solid var(--c-red-500);
+  animation: tile-pulse var(--dur-pulse) var(--ease-out) infinite;
+}
+.car__flag { position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; background: var(--color-danger-solid); color: #fff; font-size: 10px; line-height: 1; box-shadow: 0 0 0 2px #fff; }
+@keyframes tile-pulse { from { transform: scale(0.96); opacity: 0.9; } to { transform: scale(1.35); opacity: 0; } }
+.car:hover, .car:focus-visible { transform: translateY(-2px); }
+.car:focus-visible { outline: none; }
+.car:hover .reticle, .car:focus-visible .reticle { opacity: 1; transform: scale(1); }
+.car.is-arriving { animation: car-arrive 620ms var(--ease-snap) both; }
+.car.is-arriving .ping { position: absolute; inset: -6px; border-radius: 12px; border: 2px solid var(--color-live); animation: ping-ring 900ms var(--ease-out) forwards; }
+.car.is-leaving { animation: car-leave var(--dur-slow) var(--ease-in) both; }
+@keyframes car-arrive { from { opacity: 0; transform: translateY(var(--from-y, -16px)) scale(0.8); } to { opacity: 1; transform: none; } }
+@keyframes car-leave { to { opacity: 0; transform: translateY(var(--from-y, -16px)) scale(0.85); } }
+@keyframes ping-ring { from { opacity: 1; transform: scale(0.9); } to { opacity: 0; transform: scale(1.5); } }
+.bays--bottom .car { --from-y: 16px; }
+
+/* reticle: ANPR lock-on corners (generic, positioned over any target) */
+.reticle {
+  position: absolute; inset: calc(-1 * var(--reticle-gap)); pointer-events: none;
+  border: var(--reticle-width) solid var(--lock, var(--reticle-color)); border-radius: 6px;
+  -webkit-mask: conic-gradient(at var(--reticle-size) var(--reticle-size), #0000 75%, #000 0) 0 0 / calc(100% - var(--reticle-size)) calc(100% - var(--reticle-size));
+          mask: conic-gradient(at var(--reticle-size) var(--reticle-size), #0000 75%, #000 0) 0 0 / calc(100% - var(--reticle-size)) calc(100% - var(--reticle-size));
+  opacity: 0; transform: scale(1.2);
+  transition: opacity var(--dur-fast), transform var(--dur-verdict) var(--ease-snap), border-color var(--dur-fast);
+}
+.car .reticle { --reticle-size: 7px; --reticle-gap: 5px; }
+
+/* ---------------- Tooltip (dark accent) ---------------- */
+.tip {
+  position: fixed; z-index: var(--z-tooltip); pointer-events: none;
+  min-width: 200px; padding: 10px 12px; border-radius: var(--radius-md);
+  background: rgb(13 24 41 / 0.94); color: var(--color-dark-text);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 0 0 1px var(--color-dark-border), 0 18px 40px -16px rgb(13 24 41 / 0.7);
+  font-size: var(--text-sm); line-height: 1.35;
+  opacity: 0; transform: translateY(4px); transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+}
+.tip.is-on { opacity: 1; transform: none; }
+.tip__row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tip__name { font: var(--weight-bold) var(--text-sm)/1.2 var(--font-display); }
+.tip__meta { color: var(--color-dark-text-muted); }
+.tip__meta b { font-family: var(--font-display); color: var(--color-dark-text); }
+.tip__hint { margin-top: 6px; font-size: var(--text-xs); color: var(--color-dark-text-subtle); }
+
+/* ---------------- Gate scanner (the one dark hero instrument) ---------------- */
+.scanner {
+  position: relative; isolation: isolate; overflow: hidden; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4);
+  color: var(--color-dark-text);
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgb(49 107 255 / 0.28), transparent 60%),
+    linear-gradient(180deg, var(--c-night-850), var(--color-dark-bg));
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px var(--color-dark-border), inset 0 1px 0 rgb(255 255 255 / 0.07), 0 28px 56px -28px rgb(13 24 41 / 0.75);
+}
+.scanner :focus-visible { outline-color: var(--color-focus-on-dark); }
+.scanner .panel__title { color: var(--color-dark-text); }
+.scanner .panel__head { margin-bottom: 0; }
+.sensors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.sensor { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 2px 8px; padding: 8px 10px; border-radius: var(--radius-md); background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 1px var(--color-dark-border); }
+.sensor__name { font: var(--weight-bold) var(--text-sm)/1 var(--font-display); }
+.sensor__state { font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); letter-spacing: var(--tracking-readout); text-transform: uppercase; color: var(--color-dark-success); }
+.sensor__state--idle { color: var(--color-dark-text-muted); }
+.sensor__meta { grid-column: 2 / -1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--text-xs); color: var(--color-dark-text-muted); font-variant-numeric: tabular-nums; }
+.sensor .dot { grid-row: 1 / 3; }
+
+.stage {
+  position: relative; height: 150px; flex: none; border-radius: 12px; overflow: hidden;
+  display: grid; place-items: center; align-content: center; gap: 12px;
+  background:
+    repeating-linear-gradient(0deg, var(--scanline) 0 1px, transparent 1px 3px),
+    radial-gradient(90% 80% at 50% 50%, rgb(21 36 58 / 0.4), rgb(8 15 27 / 0.9));
+  box-shadow: inset 0 0 0 1px var(--color-dark-border), inset 0 0 40px rgb(0 0 0 / 0.5);
+}
+.stage::before { /* verdict light */
+  content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 500ms var(--ease-out);
+  background: radial-gradient(55% 60% at 50% 45%, var(--stage-glow, transparent), transparent 70%);
+}
+.stage[data-verdict="allowed"] { --stage-glow: rgb(61 220 151 / 0.22); }
+.stage[data-verdict="denied"] { --stage-glow: rgb(255 106 92 / 0.3); }
+.stage[data-verdict]::before { opacity: 1; }
+.stage__frame { /* camera viewfinder corners */
+  position: absolute; inset: 10px; pointer-events: none; border: 1.5px solid rgb(63 216 245 / 0.35); border-radius: 6px;
+  -webkit-mask: conic-gradient(at 16px 16px, #0000 75%, #000 0) 0 0 / calc(100% - 16px) calc(100% - 16px);
+          mask: conic-gradient(at 16px 16px, #0000 75%, #000 0) 0 0 / calc(100% - 16px) calc(100% - 16px);
+}
+.stage__hud { position: absolute; left: 18px; right: 18px; top: 16px; display: flex; justify-content: space-between; font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); letter-spacing: var(--tracking-readout); text-transform: uppercase; color: var(--color-dark-text-subtle); }
+.stage__hud b { color: var(--color-dark-live); font-weight: inherit; }
+.target { position: relative; z-index: 1; }
+.target .plate { --plate-lg-font: var(--cc-feed-plate); }
+.target .reticle { --reticle-size: 12px; --reticle-gap: 9px; --reticle-width: 2px; border-radius: 10px; }
+.target.is-scanning .reticle { --lock: var(--c-cyan-300); opacity: 0.9; transform: scale(1.08); animation: reticle-hunt 700ms var(--ease-standard) infinite alternate; }
+.target.is-allowed .reticle { --lock: var(--c-green-300); opacity: 1; transform: scale(1); filter: drop-shadow(0 0 6px rgb(61 220 151 / 0.8)); }
+.target.is-out .reticle { --lock: var(--color-dark-text-muted); opacity: 0.8; transform: scale(1); }
+html[data-wall] .target .plate { --plate-lg-h: var(--plate-xl-h); --plate-lg-pad: var(--plate-xl-pad); --plate-lg-radius: var(--plate-xl-radius); }
+.target.is-denied .reticle { --lock: var(--c-red-300); opacity: 1; transform: scale(1); filter: drop-shadow(0 0 6px rgb(255 106 92 / 0.9)); }
+@keyframes reticle-hunt { from { transform: scale(1.14); } to { transform: scale(1.04); } }
+.beam-track { position: absolute; inset: -12px -14px; overflow: hidden; border-radius: 10px; pointer-events: none; }
+.beam {
+  position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 55%, rgb(63 216 245 / 0.1) 80%, rgb(63 216 245 / 0.5) 98.5%, #d8fbff 100%);
+  filter: drop-shadow(2px 0 6px rgb(63 216 245 / 0.9));
+  animation: beam var(--dur-scan) var(--ease-scan) forwards;
+}
+@keyframes beam { 0% { transform: translateX(-100%); opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(0%); opacity: 0; } }
+.verdict {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: var(--radius-sm);
+  font: var(--weight-bold) var(--text-xs)/1 var(--font-display); letter-spacing: var(--tracking-readout); text-transform: uppercase;
+  opacity: 0;
+}
+.verdict.is-on { animation: stamp var(--dur-verdict) var(--ease-snap) forwards; }
+@keyframes stamp { from { opacity: 0; transform: scale(1.35); } to { opacity: 1; transform: scale(1); } }
+.verdict--allowed { color: var(--color-dark-success); text-shadow: var(--glow-text-success); background: rgb(61 220 151 / 0.1); box-shadow: inset 0 0 0 1px rgb(61 220 151 / 0.45), 0 0 22px -6px rgb(61 220 151 / 0.7); }
+.verdict--denied { color: var(--color-dark-danger); text-shadow: var(--glow-text-danger); background: rgb(255 106 92 / 0.12); box-shadow: inset 0 0 0 1px rgb(255 106 92 / 0.5), 0 0 22px -6px rgb(255 106 92 / 0.8); }
+.verdict--out { color: var(--color-dark-text-muted); box-shadow: inset 0 0 0 1px var(--color-dark-border-strong); }
+.stage__reason { position: absolute; bottom: 12px; left: 16px; right: 16px; text-align: center; font-size: var(--text-xs); color: var(--color-dark-text-muted); opacity: 0; transition: opacity 300ms; }
+.stage__reason.is-on { opacity: 1; }
+
+.feed { display: grid; align-content: start; flex: 1; min-height: 0; overflow: hidden; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+.feed__row {
+  display: grid; grid-template-columns: 62px 16px auto 1fr auto; align-items: center; gap: 10px;
+  height: 38px; padding: 0 8px; border-radius: 8px; overflow: hidden;
+  border-bottom: 1px solid var(--color-dark-border);
+}
+.feed__row.is-new { animation: row-in 420ms var(--ease-out) both, row-ping var(--dur-highlight) var(--ease-standard) both; }
+@keyframes row-in { from { height: 0; opacity: 0; } to { height: 38px; opacity: 1; } }
+@keyframes row-ping { from { background: rgb(63 216 245 / 0.16); } to { background: transparent; } }
+.feed__time { font: var(--weight-bold) var(--text-xs)/1 var(--font-display); color: var(--color-dark-text-muted); font-variant-numeric: tabular-nums; }
+.feed__dir { color: var(--color-dark-live); }
+.feed__dir--out { color: var(--color-dark-text-subtle); }
+.feed__verdict { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--color-dark-text-muted); white-space: nowrap; }
+.feed__verdict i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.feed__verdict--allowed { color: var(--color-dark-success); }
+.feed__verdict--denied { color: var(--color-dark-danger); }
+.feed__gate { font-size: var(--text-xs); color: var(--color-dark-text-subtle); text-align: right; }
+
+/* ---------------- Timeline ---------------- */
+.tl-svg { width: 100%; height: auto; flex: 1; min-height: 0; overflow: visible; }
+.tl-axis { font: var(--weight-bold) 10.5px var(--font-display); fill: var(--color-text-subtle); }
+.tl-bar { transform-box: fill-box; }
+.tl-bar--in { fill: url(#g-bar); transform-origin: bottom; }
+.tl-bar--out { fill: var(--chart-exits); transform-origin: top; }
+.tl-grow { animation: grow var(--dur-slow) var(--ease-out) both; animation-delay: var(--d, 0ms); }
+@keyframes grow { from { transform: scaleY(0); } }
+.tl-occ { fill: none; stroke: var(--chart-occupancy); stroke-width: 2.25; stroke-linejoin: round; filter: drop-shadow(0 2px 4px rgb(6 175 212 / 0.45)); }
+.tl-now-dot { fill: var(--chart-occupancy); }
+.tl-now-halo { fill: var(--chart-occupancy); animation: halo 1.8s var(--ease-out) infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes halo { from { opacity: 0.55; transform: scale(1); } to { opacity: 0; transform: scale(3.2); } }
+
+/* ---------------- Open alarms ---------------- */
+.alarm-list { display: grid; gap: var(--space-2); align-content: start; overflow: auto; margin: 0 -4px; padding: 4px; }
+.alarm-item {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 12px 12px 12px 16px; border-radius: var(--radius-md);
+  background: linear-gradient(90deg, rgb(255 239 237 / 0.95), rgb(255 255 255 / 0.7));
+  box-shadow: inset 0 0 0 1px rgb(240 68 58 / 0.22);
+}
+.alarm-item::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--c-red-500); box-shadow: 0 0 10px rgb(240 68 58 / 0.8); }
+.alarm-item.is-new { animation: alarm-in 520ms var(--ease-snap) both; }
+@keyframes alarm-in { from { opacity: 0; transform: translateX(16px) scale(0.98); } }
+.alarm-item > .btn { margin-left: auto; order: 3; align-self: end; }
+.alarm-item__main { order: 2; flex: 1 1 58%; display: grid; gap: 2px; min-width: 0; }
+.alarm-item__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.alarm-item__meta { font-size: var(--text-sm); color: var(--color-text-muted); }
+.alarm-item__meta b { font-family: var(--font-display); color: var(--color-text); }
+.alarm-item__prev { font-size: var(--text-xs); color: var(--color-warning-text); }
+.allclear { flex: 1; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; color: var(--color-text-muted); }
+.allclear__ring { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--color-success-solid); background: var(--color-success-bg); box-shadow: 0 0 0 6px rgb(22 179 100 / 0.08), var(--glow-success); }
+
+/* =====================================================================
+ * PLATE CHIP v2 (signature) + plate input
+ * ===================================================================== */
+.plate {
+  --h: var(--plate-md-h); --pad: var(--plate-md-pad); --fs: var(--plate-md-font); --rad: var(--plate-md-radius);
+  position: relative; display: inline-flex; align-items: center; gap: calc(var(--fs) * 0.42);
+  height: var(--h); padding: 0 var(--pad); vertical-align: middle; white-space: nowrap;
+  font: var(--plate-weight) var(--fs)/1 var(--plate-font); letter-spacing: var(--plate-tracking);
+  font-variant-numeric: tabular-nums; color: var(--plate-ink);
+  background: var(--plate-fill); border: 1px solid var(--plate-edge); border-radius: var(--rad);
+  box-shadow:
+    inset 0 0 0 var(--plate-rim-gap) var(--plate-bg),
+    inset 0 0 0 calc(var(--plate-rim-gap) + 1px) var(--plate-rim),
+    var(--plate-shadow);
+}
+.plate[data-ch]::before { /* Swiss shield mark */
+  content: ""; width: calc(var(--fs) * 0.56); height: calc(var(--fs) * 0.68); flex: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M0 0h10v7c0 2.6-2.4 4.2-5 5C2.4 11.2 0 9.6 0 7z' fill='%23d92d20'/%3E%3Cpath d='M4 2.4h2v2.1h2.1v2H6v2.1H4V6.5H1.9v-2H4z' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.plate--sm { --h: var(--plate-sm-h); --pad: var(--plate-sm-pad); --fs: var(--plate-sm-font); --rad: var(--plate-sm-radius); box-shadow: 0 0 0 0 transparent, inset 0 0 0 0 transparent, 0 1px 1px rgb(16 28 46 / 0.12); }
+.plate--sm[data-ch]::before { display: none; }
+.plate--lg { --h: var(--plate-lg-h); --pad: var(--plate-lg-pad); --fs: var(--plate-lg-font); --rad: var(--plate-lg-radius); }
+.plate--xl { --h: var(--plate-xl-h); --pad: var(--plate-xl-pad); --fs: var(--plate-xl-font); --rad: var(--plate-xl-radius); --plate-rim-gap: 3px; }
+.plate > .reticle { --reticle-size: 8px; border-radius: calc(var(--rad) + 4px); }
+.plate--interactive { cursor: pointer; transition: transform var(--dur-fast) var(--ease-out); }
+.plate--interactive:hover, .plate--interactive:focus-visible, .plate--hover { transform: translateY(-1px); outline: none; }
+.plate--interactive:hover > .reticle, .plate--interactive:focus-visible > .reticle, .plate--hover > .reticle { opacity: 1; transform: scale(1); }
+.plate--scanning > .reticle { --lock: var(--c-cyan-500); opacity: 1; animation: reticle-hunt 700ms var(--ease-standard) infinite alternate; }
+.plate--allowed { box-shadow: inset 0 0 0 var(--plate-rim-gap) var(--plate-bg), inset 0 0 0 calc(var(--plate-rim-gap) + 1px) var(--plate-rim), var(--plate-shadow), var(--glow-success); }
+.plate--allowed > .reticle { --lock: var(--c-green-500); opacity: 1; transform: scale(1); }
+.plate--denied { box-shadow: inset 0 0 0 var(--plate-rim-gap) var(--plate-bg), inset 0 0 0 calc(var(--plate-rim-gap) + 1px) var(--plate-rim), var(--plate-shadow), var(--glow-danger); }
+.plate--denied > .reticle { --lock: var(--c-red-500); opacity: 1; transform: scale(1); }
+.plate--muted { opacity: var(--plate-muted-opacity); box-shadow: inset 0 0 0 var(--plate-rim-gap) var(--plate-bg), inset 0 0 0 calc(var(--plate-rim-gap) + 1px) var(--plate-rim); }
+.plate .beam-track { inset: -1px; border-radius: inherit; }
+
+.plate-input {
+  position: relative; display: block;
+}
+.plate-input input {
+  width: 100%; height: var(--plate-input-h); padding: 0 var(--plate-input-pad) 0 calc(var(--plate-input-pad) + 26px);
+  font: var(--plate-weight) var(--plate-input-font)/1 var(--plate-font); letter-spacing: var(--plate-tracking); text-transform: uppercase;
+  color: var(--plate-ink); background: var(--plate-fill);
+  border: 1px solid var(--plate-edge); border-radius: var(--plate-input-radius);
+  box-shadow: inset 0 0 0 3px var(--plate-bg), inset 0 0 0 4px var(--plate-rim), var(--plate-shadow);
+  outline: none; transition: box-shadow var(--dur-fast);
+}
+.plate-input::before { content: ""; position: absolute; left: calc(var(--plate-input-pad) + 2px); top: 50%; width: 17px; height: 21px; transform: translateY(-50%); z-index: 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M0 0h10v7c0 2.6-2.4 4.2-5 5C2.4 11.2 0 9.6 0 7z' fill='%23d92d20'/%3E%3Cpath d='M4 2.4h2v2.1h2.1v2H6v2.1H4V6.5H1.9v-2H4z' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat; }
+.plate-input input::placeholder { color: var(--color-text-disabled); }
+.plate-input .reticle { --reticle-size: 14px; --reticle-gap: 7px; --lock: var(--plate-input-rim-focus); border-radius: 18px; }
+.plate-input input:focus { border-color: var(--plate-input-rim-focus); box-shadow: inset 0 0 0 3px var(--plate-bg), inset 0 0 0 4px var(--plate-input-rim-focus), var(--plate-shadow), 0 0 0 4px rgb(49 107 255 / 0.14); }
+.plate-input input:focus ~ .reticle, .plate-input.is-focus .reticle { opacity: 1; transform: scale(1); }
+.plate-input--error input { border-color: var(--plate-input-rim-error); box-shadow: inset 0 0 0 3px var(--plate-bg), inset 0 0 0 4px var(--plate-input-rim-error), var(--plate-shadow); }
+
+/* =====================================================================
+ * BADGES, FIELDS, SEGMENTED, SWITCH
+ * ===================================================================== */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: var(--radius-sm);
+  font: var(--weight-bold) var(--text-xs)/1 var(--font-display); white-space: nowrap;
+  color: var(--tone-text); background: var(--tone-bg); box-shadow: inset 0 0 0 1px var(--tone-border);
+}
+.badge .i { width: 13px; height: 13px; }
+.badge--success { --tone-text: var(--color-success-text); --tone-bg: var(--color-success-bg); --tone-border: var(--color-success-border); }
+.badge--warning { --tone-text: var(--color-warning-text); --tone-bg: var(--color-warning-bg); --tone-border: var(--color-warning-border); }
+.badge--danger { --tone-text: var(--color-danger-text); --tone-bg: var(--color-danger-bg); --tone-border: var(--color-danger-border); }
+.badge--neutral { --tone-text: var(--color-neutral-text); --tone-bg: var(--color-neutral-bg); --tone-border: var(--color-neutral-border); }
+.badge--info { --tone-text: var(--color-info-text); --tone-bg: var(--color-info-bg); --tone-border: var(--color-info-border); }
+.badge--live { --tone-text: var(--color-live-text); --tone-bg: var(--color-live-subtle); --tone-border: var(--c-cyan-200); }
+.badge--solid-danger { color: #fff; background: var(--color-danger-solid); box-shadow: var(--glow-danger); }
+
+.field { display: grid; gap: 6px; }
+.field__label { font: var(--weight-bold) var(--text-sm)/1.2 var(--font-display); color: var(--color-text); }
+.field__label small { font: var(--weight-regular) var(--text-sm) var(--font-sans); color: var(--color-text-muted); }
+.field__hint { font-size: var(--text-sm); color: var(--color-text-muted); }
+.field__error { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); color: var(--color-danger-text); }
+.input {
+  width: 100%; height: var(--control-h-md); padding: 0 12px; border-radius: var(--radius-md);
+  font-size: var(--text-base); background: rgb(255 255 255 / 0.9); color: var(--color-text);
+  border: 1px solid var(--color-border-input); box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.input::placeholder { color: var(--color-placeholder); }
+.input:hover { border-color: var(--color-border-input-hover); }
+.input:focus, .input.is-focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary), 0 0 0 5px rgb(49 107 255 / 0.16); }
+.input--error { border-color: var(--color-danger-solid); }
+.input--error:focus { box-shadow: 0 0 0 1px var(--color-danger-solid), 0 0 0 5px rgb(240 68 58 / 0.14); }
+.input-wrap { position: relative; }
+.input-wrap > .i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-subtle); }
+.input-wrap > .input { padding-left: 36px; }
+select.input { appearance: none; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2346556b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; }
+
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--radius-md); background: var(--color-surface-sunken); box-shadow: inset 0 1px 2px rgb(16 28 46 / 0.06); }
+.seg button { height: 28px; padding: 0 12px; border-radius: 7px; font: var(--weight-bold) var(--text-sm)/1 var(--font-display); color: var(--color-text-muted); }
+.seg button[aria-checked="true"] { background: #fff; color: var(--color-text); box-shadow: var(--shadow-sm), inset 0 1px 0 #fff; }
+
+.switch { display: inline-flex; align-items: center; gap: 10px; font: var(--weight-regular) var(--text-ui) var(--font-sans); }
+.switch__track { position: relative; width: 38px; height: 22px; border-radius: var(--radius-pill); border: 1px solid var(--color-switch-border-off); background: var(--color-switch-track-off); transition: background var(--dur-fast), border-color var(--dur-fast); }
+.switch__track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-switch-thumb-off); transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast); }
+.switch[aria-checked="true"] .switch__track { background: var(--color-switch-track-on); border-color: var(--color-switch-track-on); box-shadow: 0 0 12px -2px rgb(49 107 255 / 0.6); }
+.switch[aria-checked="true"] .switch__track::after { transform: translateX(16px); background: var(--color-switch-thumb-on); }
+
+.check { display: inline-flex; align-items: center; gap: 10px; }
+.check input { width: 18px; height: 18px; accent-color: var(--color-primary); margin: 0; }
+
+/* =====================================================================
+ * TABLE (glass) + mobile card
+ * ===================================================================== */
+.table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--text-ui); }
+.table th { height: 40px; padding: 0 16px; text-align: left; font: var(--weight-bold) var(--text-sm)/1 var(--font-display); color: var(--color-text-muted); background: rgb(233 238 245 / 0.6); border-bottom: 1px solid var(--color-border-subtle); }
+.table th:first-child { border-top-left-radius: 10px; } .table th:last-child { border-top-right-radius: 10px; }
+.table td { padding: 12px 16px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr { transition: background var(--dur-fast); }
+.table tbody tr:hover, .table tbody tr.is-hover { background: rgb(49 107 255 / 0.04); }
+.table tbody tr.is-hover td:first-child { box-shadow: inset 3px 0 0 var(--c-blue-500); }
+.cell-2 { display: grid; gap: 2px; }
+.cell-2 b { font: var(--weight-bold) var(--text-ui)/1.2 var(--font-display); }
+.cell-2 span { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+/* =====================================================================
+ * ALARM BANNER + TAKEOVER
+ * ===================================================================== */
+.alarm-banner {
+  position: sticky; top: calc(var(--strip-h) + 12px); z-index: var(--z-banner);
+  display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);
+  padding: 10px 10px 10px 12px; border-radius: var(--radius-lg); overflow: hidden;
+  color: var(--color-on-danger);
+  background: linear-gradient(100deg, var(--c-red-500) 0%, var(--c-red-600) 50%, var(--c-red-700) 100%);
+  box-shadow: var(--shadow-banner);
+}
+.alarm-banner[hidden] { display: none; }
+.alarm-banner.is-entering { animation: banner-in 460ms var(--ease-out) both; }
+.alarm-banner.is-entering::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.3) 50%, transparent 65%); animation: sheen 1100ms var(--ease-standard) 200ms both; }
+@keyframes banner-in { from { opacity: 0; transform: translateY(-14px) scale(0.985); } }
+@keyframes sheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.siren { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: rgb(255 255 255 / 0.16); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2); flex: none; }
+.siren .i { width: 22px; height: 22px; }
+.alarm-banner.is-entering .siren .i { animation: siren-swing 900ms var(--ease-out) both; }
+@keyframes siren-swing { 0% { transform: rotate(0) scale(1); } 20% { transform: rotate(-14deg) scale(1.15); } 45% { transform: rotate(12deg) scale(1.1); } 70% { transform: rotate(-6deg); } 100% { transform: none; } }
+.alarm-banner__body { display: grid; gap: 4px; min-width: 0; }
+.alarm-banner__title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font: var(--weight-bold) var(--text-md)/1.2 var(--font-display); }
+.alarm-banner__meta { font-size: var(--text-sm); color: var(--color-on-danger-muted); }
+.alarm-banner__meta a { color: #fff; }
+.alarm-banner__actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.alarm-banner .icon-btn { color: #fff; }
+.alarm-banner .icon-btn:hover { background: rgb(255 255 255 / 0.16); }
+
+.takeover {
+  position: fixed; inset: 0; z-index: var(--z-takeover); pointer-events: none; opacity: 0; will-change: opacity;
+  box-shadow:
+    inset 0 0 0 2px rgb(217 45 32 / 0.8),
+    inset 0 0 64px 6px rgb(240 68 58 / 0.4),
+    inset 0 0 180px 24px rgb(240 68 58 / 0.1);
+}
+.takeover.is-on { animation: takeover var(--dur-takeover) var(--ease-standard) both; }
+@keyframes takeover { 0% { opacity: 0; } 9% { opacity: 1; } 32% { opacity: 0.28; } 50% { opacity: 0.85; } 100% { opacity: 0; } }
+html[data-wall] .takeover.is-residual { opacity: 0.35; animation: breathe var(--dur-breathe) var(--ease-standard) infinite alternate; }
+@keyframes breathe { from { opacity: 0.18; } to { opacity: 0.42; } }
+
+/* =====================================================================
+ * COMMAND PALETTE
+ * ===================================================================== */
+.scrim {
+  position: fixed; inset: 0; z-index: var(--z-palette);
+  display: grid; justify-items: center; align-items: start; padding: 12vh 16px 16px;
+  background: var(--color-overlay); -webkit-backdrop-filter: blur(6px) saturate(120%); backdrop-filter: blur(6px) saturate(120%);
+  animation: fade-in var(--dur-base) var(--ease-out);
+}
+.scrim[hidden] { display: none; }
+.palette {
+  width: min(var(--palette-w), 100%); overflow: hidden;
+  background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  border-radius: var(--radius-xl); border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--glass-highlight), var(--shadow-lg), 0 0 0 6px rgb(255 255 255 / 0.25);
+  animation: palette-in var(--dur-base) var(--ease-out);
+}
+@keyframes palette-in { from { opacity: 0; transform: translateY(-10px) scale(0.98); filter: blur(var(--motion-blur)); } }
+.palette__bar { display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 16px 0 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.palette__bar:focus-within { box-shadow: inset 0 -2px 0 var(--color-primary); }
+.palette__bar > .i { width: 20px; height: 20px; color: var(--color-primary); }
+.palette__input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; font: var(--weight-regular) var(--text-md) var(--font-sans); color: var(--color-text); }
+.palette__input:focus { outline: none; }
+.palette__input::placeholder { color: var(--color-placeholder); }
+.palette__list { max-height: min(460px, 60vh); overflow: auto; padding: 6px 8px 10px; scroll-padding: 8px; }
+.palette__group { padding: 12px 10px 6px; font: var(--weight-bold) var(--text-xs)/1 var(--font-display); color: var(--color-text-subtle); }
+.palette__item { position: relative; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 6px 10px; border-radius: var(--radius-md); cursor: pointer; }
+.palette__item[aria-selected="true"] { background: var(--color-primary-subtle); box-shadow: inset 0 0 0 1px var(--color-primary-border); }
+.palette__item[aria-selected="true"]::before { content: ""; position: absolute; left: -8px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--color-nav-marker); box-shadow: var(--glow-marker); }
+.palette__ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; flex: none; color: var(--color-text-secondary); background: var(--color-surface-sunken); box-shadow: inset 0 0 0 1px var(--color-border-subtle); }
+.palette__item[aria-selected="true"] .palette__ico { color: var(--color-primary); background: #fff; }
+.palette__text { display: grid; gap: 2px; min-width: 0; }
+.palette__label { font: var(--weight-bold) var(--text-ui)/1.2 var(--font-display); }
+.palette__desc { font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.palette__desc .badge { margin-right: 4px; }
+.palette__right { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--color-text-subtle); font-size: var(--text-xs); }
+.palette mark { background: rgb(6 175 212 / 0.18); color: inherit; border-radius: 3px; padding: 0 1px; }
+.palette__foot { display: flex; align-items: center; gap: var(--space-4); padding: 10px 16px; border-top: 1px solid var(--color-border-subtle); font-size: var(--text-xs); color: var(--color-text-subtle); background: rgb(243 246 250 / 0.6); }
+.palette__foot span { display: inline-flex; align-items: center; gap: 6px; }
+.palette__empty { padding: 28px 16px; text-align: center; color: var(--color-text-muted); }
+
+/* =====================================================================
+ * TOASTS, DIALOG (kit)
+ * ===================================================================== */
+.toasts { position: fixed; right: 24px; bottom: 24px; z-index: var(--z-toast); display: grid; gap: 10px; width: min(400px, calc(100vw - 32px)); }
+.toast {
+  position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 12px;
+  padding: 12px 12px 12px 16px; border-radius: var(--radius-lg); overflow: hidden;
+  background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-border-strong), var(--shadow-md);
+  animation: toast-in var(--dur-base) var(--ease-out);
+}
+.toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--tone-solid); box-shadow: 0 0 12px var(--tone-solid); }
+.toast__ico { color: var(--tone-solid); margin-top: 2px; }
+.toast__title { font: var(--weight-bold) var(--text-ui)/1.3 var(--font-display); }
+.toast__body { font-size: var(--text-sm); color: var(--color-text-muted); }
+.toast__action { margin-top: 4px; font: var(--weight-bold) var(--text-sm)/1 var(--font-display); color: var(--color-link); }
+.toast .btn--icon { --btn-h: 28px; }
+.toast--success { --tone-solid: var(--color-success-solid); }
+.toast--danger { --tone-solid: var(--color-danger-solid); }
+.toast--info { --tone-solid: var(--color-info-solid); }
+.toast.is-leaving { animation: toast-out var(--dur-base) var(--ease-in) forwards; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+@keyframes toast-out { to { opacity: 0; transform: translateX(24px); } }
+
+.dialog {
+  width: min(var(--dialog-w-md), 100%); padding: var(--space-6); border-radius: var(--radius-xl);
+  background: var(--glass-bg-strong); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-border-strong), var(--shadow-lg);
+}
+.dialog__head { display: flex; align-items: center; gap: 12px; margin-bottom: var(--space-4); }
+.dialog__title { font: var(--weight-bold) var(--text-lg)/var(--leading-lg) var(--font-display); letter-spacing: -0.01em; }
+.dialog__head .btn { margin-left: auto; }
+.dialog__foot { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-6); }
+.dialog__subject { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px; margin-bottom: var(--space-4); border-radius: var(--radius-md); background: rgb(255 239 237 / 0.7); box-shadow: inset 0 0 0 1px rgb(240 68 58 / 0.18); }
+
+/* =====================================================================
+ * COMPONENT KIT section
+ * ===================================================================== */
+.kit { margin-top: var(--space-16); }
+.kit__head { display: flex; align-items: baseline; gap: var(--space-4); margin-bottom: var(--space-5); }
+.kit__head h2 { font: var(--weight-bold) var(--text-2xl)/1 var(--font-display); letter-spacing: var(--tracking-tight); }
+.kit__head p { color: var(--color-text-muted); }
+.kit__grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--cc-gap); }
+.kit__grid > .panel { gap: var(--space-4); }
+.kit__h { font: var(--weight-bold) var(--text-md)/1 var(--font-display); }
+.kit__sub { font: var(--weight-bold) var(--text-xs)/1 var(--font-display); color: var(--color-text-subtle); margin-bottom: -6px; }
+.row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.stack { display: grid; gap: var(--space-4); }
+.span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; } .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; } .span-12 { grid-column: 1 / -1; }
+.darkbar { display: flex; align-items: center; gap: var(--space-2); padding: 8px 10px; border-radius: var(--radius-md); background: var(--color-dark-bg); color: var(--color-dark-text); }
+.backdrop-demo { position: relative; display: grid; place-items: center; padding: var(--space-8) var(--space-4); border-radius: var(--radius-lg); overflow: hidden;
+  background: linear-gradient(135deg, rgb(49 107 255 / 0.18), rgb(6 175 212 / 0.14)), var(--color-overlay); }
+.plate-states { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 22px 16px; }
+.table-wrap { position: relative; overflow-x: auto; border-radius: inherit; }
+.plate-state { display: grid; justify-items: start; gap: 10px; }
+.plate-state .caption { font-size: var(--text-xs); }
+
+/* =====================================================================
+ * WALL MODE
+ * ===================================================================== */
+html[data-wall] .shell { grid-template-columns: minmax(0, 1fr); }
+html[data-wall] .sidebar, html[data-wall] .page-head, html[data-wall] .kit, html[data-wall] .demo-only { display: none; }
+html[data-wall] .strip__search span { display: none; }
+html[data-wall] .strip__search { width: auto; }
+html[data-wall] .cc {
+  height: calc(100vh - var(--strip-h) - 2 * var(--page-pad-y));
+  grid-template-rows: var(--cc-kpi-h) var(--cc-row-main) var(--cc-row-lower);
+  grid-template-areas:
+    "k k k k k k k k k k k k"
+    "g g g l l l l l l f f f"
+    "a a a t t t t t t f f f";
+}
+html[data-wall] .stage { height: 220px; }
+html[data-wall] .feed__row { height: 46px; font-size: var(--text-sm); }
+html[data-wall] .kpi__spark { width: 150px; height: 56px; }
+html[data-wall] .panel__title { font-size: var(--text-lg); }
+html[data-wall] .wall-exit { display: inline-flex; }
+html[data-wall] .alarm-banner { position: fixed; top: calc(var(--strip-h) + 16px); left: var(--page-pad-x); right: var(--page-pad-x); margin: 0; padding: 16px 16px 16px 18px; }
+html[data-wall] .alarm-banner__title { font-size: var(--text-xl); }
+html[data-wall] .alarm-banner__meta { font-size: var(--text-base); }
+.wall-exit { display: none; }
+html[data-wall].is-idle, html[data-wall].is-idle * { cursor: none; }
+
+/* =====================================================================
+ * RESPONSIVE
+ * ===================================================================== */
+@media (max-width: 1500px) {
+  #gatesReadout, .clock__tz { display: none; }
+}
+@media (max-width: 1279px) {
+  .cc { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "k k" "g f" "l l" "t t" "a a"; grid-template-rows: none; }
+  .cc > .gauge, .cc > .scanner { min-height: 420px; }
+  .strip #gatesReadout { display: none; }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kit__grid > .panel { grid-column: 1 / -1; }
+}
+@media (max-width: 959px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { display: none; }
+  .strip__search span, .strip__group .readout:not(.readout--live), .clock__tz, .lang { display: none; }
+  .strip__search { width: auto; }
+  .tabbar { display: flex; }
+  .main { padding-bottom: calc(var(--tabbar-h) + 24px); }
+}
+@media (max-width: 719px) {
+  .strip { gap: 8px; padding: 0 12px; }
+  .strip__sep, .strip__name, .readout--ok, .clock, #soundBtn, .lang, #wallBtn, .wall-exit, .autopilot span { display: none; }
+  .strip__search { width: 32px; padding: 0; justify-content: center; border-color: transparent; background: none; }
+  .strip__search kbd { display: none; }
+  .cc { grid-template-columns: minmax(0, 1fr); grid-template-areas: "k" "g" "f" "a" "l" "t"; }
+  .cc > .gauge, .cc > .scanner { min-height: 0; }
+  .gauge__foot { margin-top: var(--space-4); }
+  .kpis { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--page-pad-x)); padding: 2px var(--page-pad-x) 6px; }
+  .kpi { flex: 0 0 72%; scroll-snap-align: start; }
+  .lot-block { overflow-x: auto; }
+  .page-head { flex-wrap: wrap; }
+  .page-head__actions { margin-left: 0; justify-content: flex-start; }
+  .alarm-banner { flex-wrap: wrap; }
+  .alarm-banner__actions { margin-left: 0; width: 100%; }
+}
+.tabbar {
+  display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav);
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--color-tabbar-bg); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  box-shadow: var(--shadow-tabbar);
+}
+.tabbar a { flex: 1; display: grid; place-items: center; align-content: center; gap: 4px; color: var(--color-tabbar-text); text-decoration: none; font: var(--weight-bold) var(--text-2xs)/1 var(--font-display); }
+.tabbar a[aria-current="page"] { color: var(--color-tabbar-text-active); }
+.tabbar .i { width: 22px; height: 22px; }
+
+/* =====================================================================
+ * REDUCED MOTION + hidden-tab pause
+ * ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .ambient__fields, .radar__sweep, .blip, .dot::after, .autopilot, .car--unauth::after, .tl-now-halo,
+  .target.is-scanning .reticle, .plate--scanning > .reticle, .spinner { animation: none !important; }
+  .spinner { animation: spin 1.6s linear infinite !important; }
+  .radar__sweep { opacity: 0.35; transform: rotate(300deg); }
+  .car--unauth::after { opacity: 0.8; transform: scale(1.12); }
+  .spot::before, .spot::after { display: none; }
+  .takeover.is-on { animation: none; opacity: 1; } /* JS removes .is-on after 4 s */
+}
+html.is-hidden *, html.is-hidden *::before, html.is-hidden *::after { animation-play-state: paused !important; }
+</style>
+</head>
+<body>
+<!-- Icon sprite (lucide-style strokes) + shared SVG paints -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="g-auth" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6e9bff"/><stop offset="1" stop-color="#1f56e6"/></linearGradient>
+    <linearGradient id="g-bar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#316bff"/><stop offset="1" stop-color="#8db0ff"/></linearGradient>
+    <linearGradient id="g-occ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(6 175 212)" stop-opacity=".24"/><stop offset="1" stop-color="rgb(6 175 212)" stop-opacity="0"/></linearGradient>
+    <pattern id="p-future" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" fill="rgb(16 28 46 / 0.05)"/></pattern>
+    <symbol id="i-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1.5"/><rect width="7" height="5" x="14" y="3" rx="1.5"/><rect width="7" height="9" x="14" y="12" rx="1.5"/><rect width="7" height="5" x="3" y="16" rx="1.5"/></symbol>
+    <symbol id="i-siren" viewBox="0 0 24 24"><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 18 5"/><path d="M2 12h1"/><path d="M12 2v1"/><path d="m4.9 4.9.7.7"/><path d="M12 12v6"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    <symbol id="i-badge" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4.2-4.2"/></symbol>
+    <symbol id="i-max" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-min" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6a1.4 1.4 0 0 1-1 .4H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/></symbol>
+    <symbol id="i-volume-x" viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6a1.4 1.4 0 0 1-1 .4H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
+    <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-shield-alert" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+    <symbol id="i-in" viewBox="0 0 24 24"><path d="M17 7 7 17"/><path d="M17 17H7V7"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+    <symbol id="i-pilot" viewBox="0 0 24 24"><path d="M3 11 22 2l-9 19-2-8-8-2z"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+    <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-circle-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-2.5a2 2 0 0 0-1.9 1.5l-2.4 8.3a.3.3 0 0 1-.5 0L9.2 2.2a.3.3 0 0 0-.5 0L6.4 10.5A2 2 0 0 1 4.5 12H2"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+    <symbol id="i-enter" viewBox="0 0 24 24"><path d="m9 10-5 5 5 5"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5a14.5 14.5 0 0 1 0 19 14.5 14.5 0 0 1 0-19"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+<div class="ambient" aria-hidden="true"><div class="ambient__fields"></div><div class="ambient__grid"></div></div>
+
+<!-- ============================ COMMAND STRIP ============================ -->
+<header class="strip" role="banner">
+  <div class="strip__brand">
+    <span class="logo" aria-hidden="true">P</span>
+    <span class="strip__name">ParkLens</span>
+  </div>
+  <span class="strip__sep" aria-hidden="true"></span>
+  <div class="strip__group">
+    <span class="readout readout--live" id="liveReadout"><i class="dot" aria-hidden="true"></i>Live</span>
+    <a class="strip-alarm" id="stripAlarm" href="#alarms"><svg class="i i--sm"><use href="#i-siren"/></svg><span id="stripAlarmText">1 open alarm</span></a>
+    <button class="autopilot" id="autopilotChip" aria-pressed="true" title="Autopilot generates simulated gate traffic. Click to stop.">
+      <svg class="i i--sm"><use href="#i-pilot"/></svg><span>Autopilot on</span>
+    </button>
+    <span class="readout readout--ok readout--quiet"><i class="dot dot--static" aria-hidden="true"></i>System OK</span>
+    <span class="readout readout--quiet" id="gatesReadout">2 gates active</span>
+  </div>
+  <div class="strip__right">
+    <button class="strip__search" id="openPalette" aria-haspopup="dialog" aria-keyshortcuts="Meta+K Control+K">
+      <svg class="i"><use href="#i-search"/></svg><span>Search plates, pages, actions</span><kbd>⌘</kbd><kbd>K</kbd>
+    </button>
+    <div class="clock" aria-label="Local time, Zurich"><span class="clock__time" id="clock">14:32:07</span><span class="clock__tz">Zurich</span></div>
+    <button class="icon-btn" id="soundBtn" aria-pressed="false" aria-label="Alarm sound" title="Alarm sound off">
+      <svg class="i"><use href="#i-volume-x"/></svg>
+    </button>
+    <div class="lang" role="group" aria-label="Language"><button aria-pressed="true" lang="en" aria-label="English">EN</button><button aria-pressed="false" lang="de" aria-label="Deutsch">DE</button></div>
+    <button class="icon-btn" id="wallBtn" aria-label="Enter wall mode" title="Wall mode">
+      <svg class="i"><use href="#i-max"/></svg>
+    </button>
+    <button class="btn btn--sm wall-exit" id="wallExit" style="color:var(--color-dark-text);border:1px solid var(--color-dark-border-strong)"><svg class="i"><use href="#i-min"/></svg>Exit wall mode</button>
+    <button class="avatar" aria-label="Signed in as Parking Admin. Open account menu">PA</button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- ============================ SIDEBAR ============================ -->
+  <nav class="sidebar" aria-label="Main navigation">
+    <ul class="nav">
+      <li><a href="#" aria-current="page"><svg class="i"><use href="#i-dashboard"/></svg>Command center</a></li>
+      <li><a href="#alarms"><svg class="i"><use href="#i-siren"/></svg>Alarms<span class="count count--danger" id="navAlarmCount" aria-hidden="true">1</span><span class="sr-only" id="navAlarmSr">, 1 open alarm</span></a></li>
+      <li><a href="#"><svg class="i"><use href="#i-inbox"/></svg>Requests<span class="count count--warning" aria-hidden="true">2</span><span class="sr-only">, 2 requests waiting</span></a></li>
+      <li><a href="#"><svg class="i"><use href="#i-badge"/></svg>Permits</a></li>
+      <li><a href="#"><svg class="i"><use href="#i-activity"/></svg>Activity</a></li>
+      <li><a href="#"><svg class="i"><use href="#i-scan"/></svg>Gate simulator<i class="nav__autopilot" id="navPilot" title="Autopilot on" aria-hidden="true"></i></a></li>
+      <li><a href="#"><svg class="i"><use href="#i-settings"/></svg>Settings</a></li>
+    </ul>
+    <div class="sidebar__meter" aria-label="Lot occupancy">
+      <div class="meter__row"><span class="meter__label">Lot</span><span class="meter__value" id="meterValue">23 / 40</span></div>
+      <div class="meter__bar"><i class="a" id="meterA" style="width:55%"></i><i class="u" id="meterU" style="width:2.5%"></i></div>
+    </div>
+  </nav>
+
+  <!-- ============================ MAIN ============================ -->
+  <main id="main" class="main" tabindex="-1">
+    <div class="alarm-banner" id="banner" hidden role="region" aria-label="Live alarms">
+      <span class="siren" aria-hidden="true"><svg class="i"><use href="#i-siren"/></svg></span>
+      <div class="alarm-banner__body">
+        <div class="alarm-banner__title"><span id="bannerTitle">Car without permit entered</span><span id="bannerPlate"></span></div>
+        <div class="alarm-banner__meta"><span id="bannerMeta">14:33 at gate south</span> <a href="#alarms" id="bannerMore"></a></div>
+      </div>
+      <div class="alarm-banner__actions">
+        <button class="btn btn--sm btn--inverse" id="bannerResolve">Resolve</button>
+        <a class="btn btn--sm btn--on-danger" href="#alarms">View alarm</a>
+        <button class="icon-btn" id="bannerDismiss" aria-label="Hide this alert"><svg class="i"><use href="#i-x"/></svg></button>
+      </div>
+    </div>
+
+    <header class="page-head">
+      <div>
+        <h1>Command center</h1>
+        <p id="today">Wednesday, 30 September 2026</p>
+      </div>
+      <div class="page-head__actions">
+        <button class="btn btn--secondary demo-only" id="demoAlarm"><svg class="i"><use href="#i-siren"/></svg>Simulate alarm</button>
+        <button class="btn btn--secondary demo-only" id="demoPalette"><svg class="i"><use href="#i-search"/></svg>Open palette</button>
+        <a class="btn btn--ghost demo-only" href="#components">Component kit</a>
+        <button class="btn btn--primary" id="wallBtn2"><svg class="i"><use href="#i-max"/></svg>Wall mode</button>
+      </div>
+    </header>
+
+    <section class="cc is-booting" id="cc" aria-label="Command center instruments">
+      <!-- KPI tiles -->
+      <div class="kpis" style="--i:0" id="kpis"></div>
+
+      <!-- Occupancy gauge + radar -->
+      <article class="panel instrument spot gauge" style="--i:1" aria-labelledby="gaugeTitle">
+        <div class="panel__head">
+          <h2 class="panel__title" id="gaugeTitle">Occupancy</h2>
+          <div class="panel__meta"><span class="guide" title="Free spaces"><span class="guide__p" aria-hidden="true">P</span><span class="guide__n" id="freeN">17</span>free</span></div>
+        </div>
+        <div class="gauge__body" id="gaugeBody">
+          <svg class="gauge__svg" viewBox="0 0 232 232" aria-hidden="true" id="gaugeSvg"></svg>
+          <div class="radar" aria-hidden="true"><div class="radar__rings"></div><div class="radar__sweep"></div><div id="blips"></div></div>
+          <div class="lens" role="img" id="lens" aria-label="23 of 40 spaces occupied">
+            <div><span class="lens__value" id="lensValue">0</span><span class="lens__cap" id="lensCap">of 40, 58 %</span></div>
+          </div>
+        </div>
+        <div class="gauge__foot">
+          <div class="gauge__legend">
+            <div><i class="sw" style="background:var(--gauge-authorized)"></i>With permit<b id="legA">22</b></div>
+            <div><i class="sw" style="background:var(--gauge-unauthorized)"></i>No permit<b id="legU">1</b></div>
+          </div>
+          <p class="caption" title="Each dot is a gate event in the last 60 minutes, placed by minute like a clock face. Inner ring: north gate, outer ring: south gate.">Radar: gate events of the last hour</p>
+        </div>
+      </article>
+
+      <!-- Lot map -->
+      <article class="panel instrument spot lot" style="--i:2" aria-labelledby="lotTitle">
+        <div class="panel__head">
+          <h2 class="panel__title" id="lotTitle">Parked vehicles</h2>
+          <div class="legend panel__meta">
+            <span><i class="sw" style="background:var(--vehicle-permanent);box-shadow:inset 0 0 0 1.5px var(--vehicle-permanent-edge)"></i>Permanent</span>
+            <span><i class="sw" style="background:var(--vehicle-daily);outline:1.5px dashed var(--vehicle-daily-edge);outline-offset:-1.5px"></i>Day permit</span>
+            <span><i class="sw" style="background:var(--vehicle-unauthorized);box-shadow:inset 0 0 0 1.5px var(--vehicle-unauthorized-edge)"></i>No permit</span>
+          </div>
+        </div>
+        <div class="lotmap" id="lotmap" role="group" aria-label="Parked vehicles, one tile per car"></div>
+        <p class="caption" style="margin-top:10px">One tile per parked car, in order of arrival. Tiles are symbolic, not real bays.</p>
+      </article>
+
+      <!-- Gate scanner (dark hero instrument) -->
+      <article class="scanner" style="--i:3" aria-labelledby="feedTitle">
+        <div class="panel__head">
+          <h2 class="panel__title" id="feedTitle">Gate feed</h2>
+          <span class="readout readout--live" style="margin-left:auto"><i class="dot" aria-hidden="true"></i>Live</span>
+        </div>
+        <div class="sensors" id="sensors"></div>
+        <div class="stage" id="stage" aria-hidden="true">
+          <div class="stage__frame"></div>
+          <div class="stage__hud"><span id="stageGate">Gate <b>north</b></span><span id="stageTime">14:31:48</span></div>
+          <div class="target" id="target"></div>
+          <div class="verdict" id="verdict"></div>
+          <div class="stage__reason" id="stageReason"></div>
+        </div>
+        <ol class="feed" id="feed" aria-label="Latest gate events" aria-live="polite" aria-relevant="additions"></ol>
+      </article>
+
+      <!-- 24h timeline -->
+      <article class="panel instrument spot timeline" style="--i:4" aria-labelledby="tlTitle">
+        <div class="panel__head">
+          <h2 class="panel__title" id="tlTitle">Today</h2>
+          <div class="legend">
+            <span><i class="sw" style="background:var(--chart-entries)"></i>Entries</span>
+            <span><i class="sw" style="background:var(--chart-exits)"></i>Exits</span>
+            <span><i class="sw" style="background:var(--chart-denied);transform:rotate(45deg) scale(.8)"></i>Denied</span>
+            <span><i class="sw" style="height:3px;background:var(--chart-occupancy)"></i>Parked</span>
+          </div>
+          <div class="panel__meta"><span id="tlTotals">44 in, 21 out</span></div>
+        </div>
+        <div id="timeline" role="img" aria-label="Hourly entries and exits today with parked cars over time"></div>
+      </article>
+
+      <!-- Open alarms -->
+      <article class="panel instrument spot alarms" id="alarms" style="--i:5" aria-labelledby="alTitle">
+        <div class="panel__head">
+          <h2 class="panel__title" id="alTitle">Open alarms</h2>
+          <span class="count count--danger" id="alCount" style="margin-left:0">1</span>
+          <div class="panel__meta"><a class="panel__link" href="#alarms">View all</a></div>
+        </div>
+        <div class="alarm-list" id="alarmList"></div>
+      </article>
+    </section>
+
+    <!-- ============================ COMPONENT KIT ============================ -->
+    <section class="kit" id="components" aria-labelledby="kitTitle">
+      <div class="kit__head">
+        <h2 id="kitTitle">Component kit</h2>
+        <p>Core components restyled for v2. Same behaviour and states as v1 (UX.md §6).</p>
+      </div>
+      <div class="kit__grid">
+        <!-- Buttons -->
+        <div class="panel span-7">
+          <h3 class="kit__h">Buttons</h3>
+          <p class="kit__sub">Variants</p>
+          <div class="row">
+            <button class="btn btn--primary"><svg class="i"><use href="#i-plus"/></svg>New permit</button>
+            <button class="btn btn--secondary">Cancel</button>
+            <button class="btn btn--ghost">Clear filters</button>
+            <button class="btn btn--danger">Revoke permit</button>
+            <button class="btn btn--primary" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Saving…</button>
+            <button class="btn btn--primary" disabled>Approve</button>
+          </div>
+          <p class="kit__sub">Sizes and icon-only</p>
+          <div class="row">
+            <button class="btn btn--primary btn--sm">Resolve</button>
+            <button class="btn btn--primary">Resolve alarm</button>
+            <button class="btn btn--primary btn--lg">Send request</button>
+            <button class="btn btn--secondary btn--icon" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+          </div>
+          <p class="kit__sub">On dark (strip) and on danger (banner)</p>
+          <div class="row">
+            <div class="darkbar"><button class="icon-btn" aria-label="Alarm sound" aria-pressed="true" style="color:var(--color-dark-live)"><svg class="i"><use href="#i-volume"/></svg></button><span class="readout readout--live"><i class="dot"></i>Live</span><span class="autopilot" aria-hidden="true"><svg class="i i--sm"><use href="#i-pilot"/></svg>Autopilot on</span></div>
+            <div class="darkbar" style="background:linear-gradient(100deg,var(--c-red-500),var(--c-red-700))"><button class="btn btn--sm btn--inverse">Resolve</button><a class="btn btn--sm btn--on-danger" href="#components">View alarm</a></div>
+          </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="panel span-5">
+          <h3 class="kit__h">Badges</h3>
+          <p class="kit__sub">Permit status</p>
+          <div class="row">
+            <span class="badge badge--warning"><svg class="i"><use href="#i-clock"/></svg>Pending</span>
+            <span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Approved</span>
+            <span class="badge badge--neutral"><svg class="i"><use href="#i-x"/></svg>Rejected</span>
+            <span class="badge badge--neutral"><svg class="i"><use href="#i-circle-alert"/></svg>Revoked</span>
+          </div>
+          <p class="kit__sub">Alarm, access, live</p>
+          <div class="row">
+            <span class="badge badge--danger"><svg class="i"><use href="#i-siren"/></svg>Open</span>
+            <span class="badge badge--neutral"><svg class="i"><use href="#i-check"/></svg>Resolved</span>
+            <span class="badge badge--success"><svg class="i"><use href="#i-shield-check"/></svg>Authorized</span>
+            <span class="badge badge--danger"><svg class="i"><use href="#i-shield-alert"/></svg>No permit</span>
+            <span class="badge badge--live"><svg class="i"><use href="#i-car"/></svg>Parked 2 h 14 min</span>
+          </div>
+          <p class="kit__sub">Counts</p>
+          <div class="row">
+            <span class="count count--danger" style="margin:0">3</span>
+            <span class="count count--warning" style="margin:0">2</span>
+            <span class="count count--neutral" style="margin:0">23</span>
+            <span class="guide"><span class="guide__p" aria-hidden="true">P</span><span class="guide__n">17</span>free</span>
+          </div>
+        </div>
+
+        <!-- PlateChip -->
+        <div class="panel span-7">
+          <h3 class="kit__h">PlateChip</h3>
+          <p class="kit__sub">Sizes</p>
+          <div class="row" style="gap:18px">
+            <span class="plate plate--sm" data-ch translate="no">ZH 123 456</span>
+            <span class="plate" data-ch translate="no">ZH 123 456</span>
+            <span class="plate plate--lg" data-ch translate="no">ZH 123 456</span>
+            <span class="plate plate--xl" data-ch translate="no">ZH 123 456</span>
+          </div>
+          <p class="kit__sub">States</p>
+          <div class="plate-states">
+            <div class="plate-state"><span class="plate plate--lg" data-ch translate="no">BE 98 765<i class="reticle"></i></span><span class="caption">Default</span></div>
+            <div class="plate-state"><span class="plate plate--lg plate--interactive plate--hover" data-ch translate="no" tabindex="0">BE 98 765<i class="reticle"></i></span><span class="caption">Interactive: hover and focus lock on</span></div>
+            <div class="plate-state"><span class="plate plate--lg plate--scanning" data-ch translate="no" id="kitScan">BE 98 765<i class="reticle"></i><span class="beam-track"><span class="beam" style="animation-iteration-count:infinite;animation-duration:1600ms"></span></span></span><span class="caption">Scanning (camera read in progress)</span></div>
+            <div class="plate-state"><span class="plate plate--lg plate--allowed" data-ch translate="no">ZH 555 111<i class="reticle"></i></span><span class="caption">Allowed (valid permit)</span></div>
+            <div class="plate-state"><span class="plate plate--lg plate--denied" data-ch translate="no">ZH 999 999<i class="reticle"></i></span><span class="caption">Denied (no permit)</span></div>
+            <div class="plate-state"><span class="plate plate--lg plate--muted" data-ch translate="no">LU 777<i class="reticle"></i></span><span class="caption">Muted (left the lot, revoked)</span></div>
+          </div>
+        </div>
+
+        <!-- Inputs -->
+        <div class="panel span-5">
+          <h3 class="kit__h">Inputs</h3>
+          <div class="field">
+            <label class="field__label" for="k-plate">Licence plate</label>
+            <div class="plate-input is-focus"><input id="k-plate" value="ZH 123 456" autocomplete="off" spellcheck="false"><i class="reticle"></i></div>
+            <span class="field__hint">As shown on the plate, e.g. ZH 123 456.</span>
+          </div>
+          <div class="field">
+            <label class="field__label" for="k-name">Driver's name</label>
+            <input class="input is-focus" id="k-name" value="Lea Keller">
+          </div>
+          <div class="field">
+            <label class="field__label" for="k-mail">Contact email</label>
+            <input class="input input--error" id="k-mail" value="lea.keller@" aria-invalid="true" aria-describedby="k-mail-e">
+            <span class="field__error" id="k-mail-e"><svg class="i i--sm"><use href="#i-circle-alert"/></svg>Enter a valid email address, e.g. name@company.ch.</span>
+          </div>
+          <div class="row">
+            <div class="input-wrap" style="flex:1;min-width:180px"><svg class="i"><use href="#i-search"/></svg><input class="input" placeholder="Plate or name" aria-label="Search"></div>
+            <select class="input" style="width:auto" aria-label="Status"><option>All statuses</option><option>Approved</option></select>
+          </div>
+          <div class="row">
+            <div class="seg" role="radiogroup" aria-label="Type"><button role="radio" aria-checked="true">All</button><button role="radio" aria-checked="false">Permanent</button><button role="radio" aria-checked="false">Day</button></div>
+            <button class="switch" role="switch" aria-checked="true"><span class="switch__track"></span>Send alarm notifications</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="panel span-7" style="padding:0"><div class="table-wrap">
+          <table class="table" aria-label="Permits (sample)">
+            <thead><tr><th scope="col">Plate</th><th scope="col">Holder</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+            <tbody>
+              <tr><td><span class="plate" data-ch translate="no">ZH 123 456</span></td><td><div class="cell-2"><b>Anna Muster</b><span>anna.muster@firma.ch</span></div></td><td>Permanent permit</td><td><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Approved</span></td><td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Details"><svg class="i"><use href="#i-arrow"/></svg></button></td></tr>
+              <tr class="is-hover"><td><span class="plate" data-ch translate="no">ZH 555 111</span></td><td><div class="cell-2"><b>Lea Keller</b><span>Visitor</span></div></td><td>Day permit, 30 Sep 2026</td><td><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Approved</span></td><td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Details"><svg class="i"><use href="#i-arrow"/></svg></button></td></tr>
+              <tr><td><span class="plate plate--muted" data-ch translate="no">LU 777</span></td><td><div class="cell-2"><b>Max Beispiel</b><span>max@example.com</span></div></td><td>Permanent permit</td><td><span class="badge badge--neutral"><svg class="i"><use href="#i-x"/></svg>Rejected</span></td><td><button class="btn btn--ghost btn--icon btn--sm" aria-label="Details"><svg class="i"><use href="#i-arrow"/></svg></button></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+
+        <!-- Toasts -->
+        <div class="panel span-5">
+          <h3 class="kit__h">Toasts</h3>
+          <div class="toast toast--success" style="animation:none"><svg class="i i--lg toast__ico"><use href="#i-circle-check"/></svg><div><div class="toast__title">Request for ZH 555 111 approved</div></div><button class="btn btn--ghost btn--icon" aria-label="Dismiss"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="toast toast--info" style="animation:none"><svg class="i i--lg toast__ico"><use href="#i-inbox"/></svg><div><div class="toast__title">New permit request from Tom Weber</div><button class="toast__action">Review</button></div><button class="btn btn--ghost btn--icon" aria-label="Dismiss"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="toast toast--danger" style="animation:none"><svg class="i i--lg toast__ico"><use href="#i-circle-alert"/></svg><div><div class="toast__title">No connection to the server</div><div class="toast__body">Check your network and try again.</div></div><button class="btn btn--ghost btn--icon" aria-label="Dismiss"><svg class="i"><use href="#i-x"/></svg></button></div>
+        </div>
+
+        <!-- Dialog -->
+        <div class="panel span-12" style="padding:0;overflow:hidden">
+          <div class="backdrop-demo">
+            <div class="dialog" role="dialog" aria-labelledby="dlgTitle" aria-modal="false">
+              <div class="dialog__head"><h3 class="dialog__title" id="dlgTitle">Resolve alarm</h3><button class="btn btn--ghost btn--icon" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+              <div class="dialog__subject">
+                <span class="plate plate--lg plate--denied" data-ch translate="no">ZH 999 999<i class="reticle"></i></span>
+                <div style="display:grid;gap:4px">
+                  <span class="badge badge--danger" style="justify-self:start"><svg class="i"><use href="#i-shield-alert"/></svg>No permit</span>
+                  <span class="alarm-item__meta">Today, 08:12 at gate north. Still parked.</span>
+                </div>
+              </div>
+              <div class="stack">
+                <div class="field"><label class="field__label" for="d-note">Note <small>(optional)</small></label><textarea class="input" id="d-note" rows="2" style="height:auto;padding:10px 12px" placeholder="e.g. Visitor for Marco Rossi, confirmed by reception"></textarea><span class="field__hint">Visible to other admins.</span></div>
+                <label class="check"><input type="checkbox" checked> Grant a day permit for today</label>
+                <div class="field" style="padding-left:28px"><label class="field__label" for="d-name">Driver's name</label><input class="input" id="d-name" value="Jan Vogel"></div>
+              </div>
+              <div class="dialog__foot"><button class="btn btn--secondary">Cancel</button><button class="btn btn--primary">Resolve and grant permit</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="Main navigation">
+  <a href="#" aria-current="page"><svg class="i"><use href="#i-dashboard"/></svg>Center</a>
+  <a href="#alarms"><svg class="i"><use href="#i-siren"/></svg>Alarms</a>
+  <a href="#"><svg class="i"><use href="#i-inbox"/></svg>Requests</a>
+  <a href="#"><svg class="i"><use href="#i-badge"/></svg>Permits</a>
+  <a href="#"><svg class="i"><use href="#i-activity"/></svg>More</a>
+</nav>
+
+<div class="takeover" id="takeover" aria-hidden="true"></div>
+<div class="sr-only" aria-live="assertive" aria-atomic="true" id="announcer"></div>
+<div class="tip" id="tip" role="tooltip"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- ============================ COMMAND PALETTE ============================ -->
+<div class="scrim" id="scrim" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="palette__bar">
+      <svg class="i"><use href="#i-search"/></svg>
+      <input class="palette__input" id="pInput" role="combobox" aria-expanded="true" aria-controls="pList" aria-autocomplete="list"
+             placeholder="Search a plate, or type a page or action" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette__list" id="pList" role="listbox" aria-label="Results"></div>
+    <div class="palette__foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd>Move</span>
+      <span><kbd><svg class="i i--sm"><use href="#i-enter"/></svg></kbd>Open</span>
+      <span><kbd>Esc</kbd>Close</span>
+      <span style="margin-left:auto" id="pCount" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+ * Prototype engine (vanilla JS). In the app this maps to:
+ *   motion/react (AnimatePresence, layout, animate numbers), React Query data, SSE events.
+ * Hash switches for review/screenshots:  #still  #alarm  #wall  #palette  #palette=zh  (combine with &)
+ */
+(() => {
+  'use strict';
+
+  const RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = () => RM.matches;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const icon = (id, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const params = new URLSearchParams(location.hash.slice(1));
+
+  /* ------------------------------------------------------------ time */
+  const TZ = 'Europe/Zurich';
+  const CAP = 40;
+  const START = Date.parse('2026-09-30T12:32:07Z');         // 14:32:07 in Zurich (demo clock)
+  const T0 = performance.now();
+  const now = () => new Date(START + (performance.now() - T0));
+  const fTime = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  const fHM = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const at = hms => { const [h, m, s = 0] = hms.split(':').map(Number); return new Date(Date.UTC(2026, 8, 30, h - 2, m, s)); };
+  const zHour = d => (d.getUTCHours() + 2) % 24;
+  const dur = ms => { const m = Math.max(1, Math.round(ms / 60000)); if (m < 60) return `${m} min`; const h = Math.floor(m / 60), r = m % 60; return r ? `${h} h ${r} min` : `${h} h`; };
+  const ago = ms => { const s = Math.max(0, Math.round(ms / 1000)); if (s < 60) return `${s} s ago`; const m = Math.floor(s / 60); return m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} h ago`; };
+  const nf = new Intl.NumberFormat('en-GB');
+
+  /* ------------------------------------------------------------ plates */
+  const fmt = p => { const m = p.match(/^([A-ZÄÖÜ]{2})(\d{1,6})$/); return m ? `${m[1]} ${m[2].replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}` : p; };
+  const isCH = p => /^[A-ZÄÖÜ]{2}\d{1,6}$/.test(p);
+  const norm = s => s.toUpperCase().replace(/[^A-Z0-9ÄÖÜ]/g, '');
+  const plate = (p, size = 'md', extra = '') =>
+    `<span class="plate${size !== 'md' ? ` plate--${size}` : ''}${extra ? ` ${extra}` : ''}"${isCH(p) ? ' data-ch' : ''} translate="no"><span class="plate__txt">${fmt(p)}</span><i class="reticle" aria-hidden="true"></i></span>`;
+
+  /* ------------------------------------------------------------ data */
+  const PERMITS = [
+    ['ZH123456', 'Anna Muster', 'permanent'], ['BE98765', 'Marco Rossi', 'permanent'], ['ZH555111', 'Lea Keller', 'daily'],
+    ['AG318204', 'Jonas Brunner', 'permanent'], ['LU52118', 'Nina Widmer', 'permanent'], ['SG247390', 'Reto Baumann', 'permanent'],
+    ['ZG61442', 'Sandra Imhof', 'permanent'], ['TG90115', 'Daniel Kessler', 'permanent'], ['BS12870', 'Laura Meier', 'permanent'],
+    ['SO73301', 'Patrick Huber', 'permanent'], ['BL45996', 'Claudia Steiner', 'permanent'], ['SZ20617', 'Martin Gerber', 'permanent'],
+    ['VD413220', 'Julien Favre', 'permanent'], ['GE78045', 'Camille Dubois', 'permanent'], ['TI305118', 'Luca Bernasconi', 'permanent'],
+    ['FR66734', 'Nadine Aebischer', 'permanent'], ['GR18402', 'Andrea Caduff', 'permanent'], ['BE511764', 'Fabienne Moser', 'permanent'],
+    ['ZH804553', 'Michael Schmid', 'permanent'], ['ZH271009', 'Sabrina Weber', 'permanent'], ['AG55780', 'Thomas Bühler', 'permanent'],
+    ['LU309441', 'Simone Kaufmann', 'permanent'], ['SG88126', 'Beat Roth', 'permanent'], ['ZH640318', 'Petra Graf', 'permanent'],
+    ['VS71205', 'Yann Rey', 'daily'], ['BE402117', 'Stefan Zürcher', 'permanent'], ['NE33410', 'Élodie Perret', 'permanent'],
+    ['SH20944', 'Urs Wanner', 'permanent'],
+  ].map(([p, holder, type]) => ({ plate: p, holder, type }));
+  const permitOf = new Map(PERMITS.map(p => [p.plate, p]));
+  const UNKNOWN = ['TI77031', 'AI4512', 'OW1287', 'JU50318', 'UR9046'];
+
+  const S = {
+    slots: new Array(CAP).fill(null),                      // symbolic lot slots
+    alarms: [{ id: 'a1', plate: 'ZH999999', at: at('08:12:40'), gate: 'north', prev: 1 }],
+    entries: [0, 0, 0, 0, 0, 1, 3, 8, 12, 5, 2, 2, 4, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    exits:   [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 4, 6, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    denied:  [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    occ:     [0, 0, 0, 0, 0, 1, 4, 11, 22, 25, 24, 22, 20, 22, 23, null, null, null, null, null, null, null, null, null],
+    gates: { north: { last: at('14:31:48'), events: 38, denied: 1 }, south: { last: at('14:26:10'), events: 27, denied: 1 } },
+    events: [],   // newest first; [0] is on the stage
+    autopilot: !params.has('still'),
+    sound: false,
+  };
+  [
+    ['ZH123456', '07:02', 0], ['AG318204', '07:18', 1], ['LU52118', '07:25', 2], ['SG247390', '14:19:02', 3], ['ZG61442', '07:41', 5],
+    ['TG90115', '07:48', 6], ['BS12870', '07:55', 7], ['SO73301', '08:03', 8], ['ZH999999', '08:12:40', 9], ['BL45996', '08:10', 10],
+    ['SZ20617', '08:21', 11], ['VD413220', '08:26', 13], ['GE78045', '08:34', 14], ['TI305118', '13:39:50', 16], ['FR66734', '08:47', 17],
+    ['GR18402', '08:55', 18], ['BE511764', '09:05', 20], ['ZH804553', '09:12', 22], ['ZH271009', '14:31:48', 23], ['ZH640318', '09:40', 25],
+    ['ZH555111', '10:15', 27], ['VS71205', '13:58:11', 28], ['LU309441', '11:02', 31],
+  ].forEach(([p, t, slot]) => { S.slots[slot] = { plate: p, enteredAt: at(t), permit: permitOf.get(p) || null }; });
+  [
+    ['14:31:48', 'in', 'ZH271009', 'north'], ['14:26:10', 'out', 'AG55780', 'south'], ['14:19:02', 'in', 'SG247390', 'north'],
+    ['14:02:37', 'out', 'SG88126', 'south'], ['13:58:11', 'in', 'VS71205', 'south'], ['13:47:05', 'out', 'NE33410', 'south'],
+    ['13:39:50', 'in', 'TI305118', 'north'], ['13:35:12', 'out', 'SH20944', 'north'],
+  ].forEach(([t, dir, p, gate]) => S.events.push({ time: at(t), dir, plate: p, gate, permit: permitOf.get(p) || null, allowed: dir === 'in' ? !!permitOf.get(p) : null, stay: dir === 'out' ? rand(3, 7) * 3600e3 : null }));
+
+  const parkedCars = () => S.slots.filter(Boolean);
+  const count = () => {
+    const cars = parkedCars();
+    return { parked: cars.length, unauth: cars.filter(c => !c.permit).length };
+  };
+  const totals = () => ({ entries: S.entries.reduce((a, b) => a + b, 0), exits: S.exits.reduce((a, b) => a + b, 0), denied: S.denied.reduce((a, b) => a + b, 0) });
+
+  /* ------------------------------------------------------------ number tween (count-up) */
+  const shown = new Map();
+  function tween(el, to, { dur = 1100, delay = 0 } = {}) {
+    if (!el) return;
+    const from = shown.get(el) ?? 0;
+    shown.set(el, to);
+    if (reduced() || from === to) { el.textContent = nf.format(to); return; }
+    const t0 = performance.now() + delay;
+    const step = t => {
+      const k = Math.min(1, Math.max(0, (t - t0) / dur));
+      const e = 1 - Math.pow(1 - k, 4);
+      el.textContent = nf.format(Math.round(from + (to - from) * e));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* ------------------------------------------------------------ sparkline */
+  function spark(values, color, id, delay) {
+    const vals = values.slice(5);                       // from 05:00 (first activity)
+    const w = 104, h = 40, max = Math.max(...vals, 1), n = vals.length;
+    const pts = vals.map((v, i) => [ (i / (n - 1)) * (w - 4) + 2, h - 4 - (v / max) * (h - 10) ]);
+    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+    const last = pts[pts.length - 1];
+    return `<svg class="kpi__spark" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+      <defs><linearGradient id="sg-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".22"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+      <path class="spark-area fade-in" style="--d:${delay + 300}ms" d="${d}L${last[0]},${h}L${pts[0][0]},${h}Z" fill="url(#sg-${id})"/>
+      <path class="spark-line draw" style="--d:${delay}ms" pathLength="1" d="${d}" stroke="${color}"/>
+      <circle class="fade-in" style="--d:${delay + 700}ms;filter:drop-shadow(0 0 4px ${color})" cx="${last[0]}" cy="${last[1]}" r="3" fill="${color}"/>
+    </svg>`;
+  }
+
+  /* ------------------------------------------------------------ KPIs */
+  function renderKpis(first) {
+    const c = count(), t = totals();
+    const hour = zHour(now());
+    const K = [
+      { id: 'alarms', label: 'Open alarms', ic: 'siren', v: S.alarms.length, sub: `Denied today: ${t.denied}`, spark: S.denied, color: 'var(--c-red-500)', alarm: S.alarms.length > 0 },
+      { id: 'parked', label: 'Parked now', ic: 'car', v: c.parked, unit: `/ ${CAP}`, sub: c.unauth ? `${c.unauth} without permit` : 'All with permit', subDanger: c.unauth > 0, spark: S.occ.map(v => v ?? 0).slice(0, hour + 1), color: 'var(--c-cyan-500)' },
+      { id: 'entries', label: 'Entries today', ic: 'in', v: t.entries, sub: `${S.entries[hour]} in the current hour`, spark: S.entries.slice(0, hour + 1), color: 'var(--c-blue-500)' },
+      { id: 'requests', label: 'Requests waiting', ic: 'inbox', v: 2, sub: 'Oldest sent 3 h ago', warn: true },
+      { id: 'permits', label: 'Valid permits today', ic: 'badge', v: 28, sub: 'Permanent 26, day 2' },
+    ];
+    const box = $('#kpis');
+    if (first) {
+      box.innerHTML = K.map((k, i) => `
+        <a class="panel instrument spot kpi${k.alarm ? ' kpi--alarm' : ''}${k.warn ? ' kpi--warn' : ''}" href="#${k.id === 'alarms' ? 'alarms' : ''}" style="--i:${i}" data-kpi="${k.id}">
+          <span class="kpi__label">${k.alarm ? '<i class="dot" aria-hidden="true"></i>' : icon(k.ic)}${k.label}</span>
+          <span class="kpi__value"><span data-v>0</span>${k.unit ? `<span class="kpi__unit">${k.unit}</span>` : ''}</span>
+          <span class="kpi__sub${k.subDanger ? ' kpi__sub--danger' : ''}" data-sub>${k.sub}</span>
+          ${k.spark ? spark(k.spark, k.color, k.id, 250 + i * 90) : ''}
+        </a>`).join('');
+    }
+    K.forEach((k, i) => {
+      const el = box.querySelector(`[data-kpi="${k.id}"]`);
+      el.classList.toggle('kpi--alarm', !!k.alarm);
+      const lab = el.querySelector('.kpi__label');
+      if (k.id === 'alarms') lab.innerHTML = `${k.alarm ? '<i class="dot" aria-hidden="true"></i>' : icon(k.ic)}${k.label}`;
+      const sub = el.querySelector('[data-sub]'); sub.textContent = k.sub; sub.classList.toggle('kpi__sub--danger', !!k.subDanger);
+      tween(el.querySelector('[data-v]'), k.v, { delay: first ? 200 + i * 90 : 0 });
+      if (!first && k.spark) {
+        const old = el.querySelector('.kpi__spark'); old.outerHTML = spark(k.spark, k.color, k.id, 0);
+        el.querySelectorAll('.draw, .fade-in').forEach(n => { n.classList.remove('draw', 'fade-in'); });
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------ gauge + radar */
+  const G = { built: false };
+  const ARC = 2 * Math.PI * 104;   // circumference in px (CSS dash arrays ignore pathLength in Chromium)
+  function renderGauge(first) {
+    const svg = $('#gaugeSvg');
+    if (!G.built) {
+      let ticks = '';
+      for (let t = 0; t <= 300; t += 10) {
+        const major = t % 50 === 0, phi = (120 + t) * Math.PI / 180;
+        const r1 = 113, r2 = major ? 119 : 116;
+        ticks += `<line class="gauge__tick${major ? ' gauge__tick--major' : ''}" x1="${116 + r1 * Math.cos(phi)}" y1="${116 + r1 * Math.sin(phi)}" x2="${116 + r2 * Math.cos(phi)}" y2="${116 + r2 * Math.sin(phi)}"/>`;
+      }
+      svg.innerHTML = `${ticks}
+        <circle class="gauge__arc gauge__arc--track" cx="116" cy="116" r="104" style="stroke-dasharray:${ARC * 300 / 360} ${ARC};transform:rotate(120deg);transform-origin:116px 116px"/>
+        <circle class="gauge__arc gauge__arc--a" id="arcA" cx="116" cy="116" r="104" style="stroke-dasharray:0 ${ARC};transform:rotate(120deg);transform-origin:116px 116px"/>
+        <circle class="gauge__arc gauge__arc--u" id="arcU" cx="116" cy="116" r="104" style="stroke-dasharray:0 ${ARC};transform:rotate(120deg);transform-origin:116px 116px;transition:stroke-dasharray var(--dur-draw) var(--ease-out),transform var(--dur-draw) var(--ease-out)"/>`;
+      G.built = true;
+    }
+    const c = count(), a = c.parked - c.unauth;
+    const A = 300 * a / CAP, U = 300 * c.unauth / CAP;
+    const apply = () => {
+      $('#arcA').style.strokeDasharray = `${ARC * A / 360} ${ARC}`;
+      $('#arcU').style.strokeDasharray = `${ARC * U / 360} ${ARC}`;
+      $('#arcU').style.transform = `rotate(${120 + A}deg)`;
+    };
+    first ? setTimeout(apply, 250) : apply();
+    tween($('#lensValue'), c.parked, { delay: first ? 250 : 0, dur: first ? 1300 : 600 });
+    $('#lensCap').textContent = `of ${CAP}, ${Math.round(c.parked * 100 / CAP)} %`;
+    $('#lens').setAttribute('aria-label', `${c.parked} of ${CAP} spaces occupied, ${c.unauth} without permit`);
+    tween($('#freeN'), CAP - c.parked, { delay: first ? 250 : 0 });
+    $('#legA').textContent = a; $('#legU').textContent = c.unauth;
+    $('#meterValue').textContent = `${c.parked} / ${CAP}`;
+    $('#meterA').style.width = `${a / CAP * 100}%`; $('#meterU').style.width = `${c.unauth / CAP * 100}%`;
+  }
+
+  function sweepPhase() {
+    const a = $('.radar__sweep').getAnimations?.()[0];
+    return a && a.currentTime != null ? a.currentTime % 8000 : 0;
+  }
+  function renderRadar() {
+    const t = now().getTime();
+    const recent = S.events.filter(e => t - e.time.getTime() < 3600e3);
+    const phase = sweepPhase();
+    $('#blips').innerHTML = recent.map((e, i) => {
+      const d = new Date(e.time);
+      const a = (d.getUTCMinutes() * 6 + d.getUTCSeconds() * 0.1);
+      const r = (e.gate === 'north' ? 38 : 64) + ((i * 7) % 9) - 4;
+      const age = (t - e.time.getTime()) / 3600e3;
+      const delay = (((a / 360) * 8000 - phase) % 8000 + 8000) % 8000;
+      const cls = e.dir === 'out' ? ' blip--out' : e.allowed === false ? ' blip--denied' : '';
+      return `<i class="blip${cls}" style="--a:${a}deg;--r:${r}px;--o:${(0.95 - age * 0.6).toFixed(2)};--delay:${delay.toFixed(0)}ms"></i>`;
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------ lot map */
+  function carHTML(car, slot, arriving) {
+    const p = car.permit, cls = !p ? 'car--unauth' : p.type === 'daily' ? 'car--daily' : '';
+    const label = `${fmt(car.plate)}, ${p ? `${p.holder}, ${p.type === 'daily' ? 'day permit' : 'permanent permit'}` : 'no permit'}, parked ${dur(now() - car.enteredAt)}`;
+    return `<button class="car ${cls}${arriving ? ' is-arriving' : ''}" data-slot="${slot}" aria-label="${label}">${car.plate.slice(0, 2)}<i class="reticle" aria-hidden="true"></i>${!p ? '<span class="car__flag" aria-hidden="true">!</span>' : ''}${arriving ? '<i class="ping" aria-hidden="true"></i>' : ''}</button>`;
+  }
+  function renderLot() {
+    const blocks = [0, 1].map(b => `
+      <div class="lot-block">
+        <div class="bays bays--top">${Array.from({ length: 10 }, (_, c) => `<div class="bay" data-bay="${b * 20 + c}"></div>`).join('')}</div>
+        <div class="aisle" aria-hidden="true"></div>
+        <div class="bays bays--bottom">${Array.from({ length: 10 }, (_, c) => `<div class="bay" data-bay="${b * 20 + 10 + c}"></div>`).join('')}</div>
+      </div>`).join('');
+    $('#lotmap').innerHTML = blocks;
+    S.slots.forEach((car, i) => { if (car) $(`[data-bay="${i}"]`).innerHTML = carHTML(car, i, false); });
+  }
+  function carArrive(slot) { const bay = $(`[data-bay="${slot}"]`); bay.innerHTML = carHTML(S.slots[slot], slot, !reduced()); }
+  function carLeave(slot) {
+    const el = $(`[data-bay="${slot}"] .car`); if (!el) return;
+    if (reduced()) { el.remove(); return; }
+    el.classList.add('is-leaving'); el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+
+  /* tooltip */
+  const tip = $('#tip');
+  function showTip(el) {
+    const car = S.slots[+el.dataset.slot]; if (!car) return;
+    const p = car.permit;
+    tip.innerHTML = `
+      <div class="tip__row">${plate(car.plate, 'sm')}<span class="tip__name">${p ? p.holder : 'Unknown vehicle'}</span></div>
+      <div class="tip__meta">${p ? (p.type === 'daily' ? 'Day permit for today' : 'Permanent permit') : '<span style="color:var(--color-dark-danger)">No permit, alarm open</span>'}</div>
+      <div class="tip__meta">Parked <b>${dur(now() - car.enteredAt)}</b> since ${fHM.format(car.enteredAt)}</div>
+      <div class="tip__hint">Select for plate history</div>`;
+    const r = el.getBoundingClientRect();
+    tip.classList.add('is-on');
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const x = Math.min(window.innerWidth - tw - 8, Math.max(8, r.left + r.width / 2 - tw / 2));
+    const y = r.top - th - 10 < 52 ? r.bottom + 10 : r.top - th - 10;
+    tip.style.left = `${x}px`; tip.style.top = `${y}px`;
+  }
+  const hideTip = () => tip.classList.remove('is-on');
+  const lotmap = $('#lotmap');
+  lotmap.addEventListener('pointerover', e => { const c = e.target.closest('.car'); if (c) showTip(c); });
+  lotmap.addEventListener('pointerout', e => { if (e.target.closest('.car')) hideTip(); });
+  lotmap.addEventListener('focusin', e => { const c = e.target.closest('.car'); if (c) showTip(c); });
+  lotmap.addEventListener('focusout', hideTip);
+  lotmap.addEventListener('click', e => { const c = e.target.closest('.car'); if (c) { hideTip(); toast('info', `Plate history: ${fmt(S.slots[+c.dataset.slot].plate)}`, 'In the app this opens the PlateDossier drawer (permits, sessions, alarms).'); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTip(); });
+
+  /* ------------------------------------------------------------ timeline */
+  function renderTimeline(first) {
+    const W = 760, H = 164, L = 24, R = 40, TOP = 18, BASE = 106, BOT = 138;
+    const PW = W - L - R, hw = PW / 24;
+    const n = now(), hr = zHour(n), mf = n.getUTCMinutes() / 60 + n.getUTCSeconds() / 3600;
+    const maxIn = Math.max(...S.entries, 6), maxOut = Math.max(...S.exits, 4);
+    const unit = Math.min((BASE - TOP - 14) / maxIn, (BOT - BASE - 4) / maxOut);
+    const bw = Math.min(14, hw * 0.46);
+    const yOcc = v => BASE - (v / CAP) * (BASE - TOP);
+    const xNow = L + (hr + mf) * hw;
+    let g = '';
+    for (const v of [10, 20, 30]) g += `<line x1="${L}" x2="${W - R}" y1="${yOcc(v)}" y2="${yOcc(v)}" stroke="var(--chart-grid)"/>`;
+    g += `<line x1="${L}" x2="${W - R}" y1="${yOcc(CAP)}" y2="${yOcc(CAP)}" stroke="var(--chart-capacity)" stroke-dasharray="3 4"/>`;
+    g += `<text class="tl-axis" x="${W - R + 6}" y="${yOcc(CAP) + 4}">${CAP} max.</text><text class="tl-axis" x="${W - R + 6}" y="${yOcc(20) + 4}">20</text><text class="tl-axis" x="${W - R + 6}" y="${BASE + 4}">0</text>`;
+    g += `<rect x="${xNow}" y="${TOP - 8}" width="${W - R - xNow}" height="${BOT - TOP + 8}" fill="url(#p-future)"/>`;
+    g += `<line x1="${L}" x2="${W - R}" y1="${BASE}" y2="${BASE}" stroke="rgb(16 28 46 / 0.18)"/>`;
+    // occupancy
+    const pts = [[L, yOcc(0)]];
+    for (let h = 0; h < hr; h++) pts.push([L + (h + 1) * hw, yOcc(S.occ[h] ?? 0)]);
+    pts.push([xNow, yOcc(S.occ[hr] ?? 0)]);
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; d += `Q${pts[i][0].toFixed(1)},${pts[i][1].toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}`; }
+    const last = pts[pts.length - 1]; d += `L${last[0].toFixed(1)},${last[1].toFixed(1)}`;
+    g += `<path d="${d}L${last[0]},${BASE}L${L},${BASE}Z" fill="url(#g-occ)" class="${first ? 'fade-in' : ''}" style="--d:400ms"/>`;
+    g += `<path d="${d}" class="tl-occ ${first ? 'draw' : ''}" pathLength="1" style="--d:250ms;${first ? '' : 'stroke-dasharray:none'}"/>`;
+    // bars
+    for (let h = 0; h <= hr; h++) {
+      const cx = L + h * hw + hw / 2, x = cx - bw / 2;
+      const hi = S.entries[h] * unit, ho = S.exits[h] * unit, dl = first ? `--d:${h * 22}ms` : '';
+      if (hi) g += `<rect class="tl-bar tl-bar--in ${first ? 'tl-grow' : ''}" style="${dl}" x="${x}" y="${BASE - hi}" width="${bw}" height="${hi}" rx="2.5"/>`;
+      if (ho) g += `<rect class="tl-bar tl-bar--out ${first ? 'tl-grow' : ''}" style="${dl}" x="${x}" y="${BASE + 1}" width="${bw}" height="${ho}" rx="2.5"/>`;
+      if (S.denied[h]) g += `<rect x="${cx - 3.5}" y="${BASE - hi - 11}" width="7" height="7" rx="1.5" transform="rotate(45 ${cx} ${BASE - hi - 7.5})" fill="var(--chart-denied)" style="filter:drop-shadow(0 0 3px rgb(240 68 58 / .8))" class="${first ? 'fade-in' : ''}"/>`;
+    }
+    for (let h = 0; h < 24; h += 3) g += `<text class="tl-axis" x="${L + h * hw}" y="${H - 6}">${String(h).padStart(2, '0')}</text>`;
+    // now marker
+    g += `<line x1="${xNow}" x2="${xNow}" y1="${TOP - 6}" y2="${BOT + 2}" stroke="var(--chart-now)" stroke-dasharray="2 3" opacity=".55"/>`;
+    g += `<g transform="translate(${xNow} ${TOP - 12})"><rect x="-20" y="-9" width="40" height="17" rx="5" fill="var(--color-dark-bg)"/><text x="0" y="3.5" text-anchor="middle" style="font:700 10.5px var(--font-display);fill:#fff">${fHM.format(n)}</text></g>`;
+    g += `<circle class="tl-now-halo" cx="${last[0]}" cy="${last[1]}" r="4"/><circle class="tl-now-dot" cx="${last[0]}" cy="${last[1]}" r="4" stroke="#fff" stroke-width="1.5"/>`;
+    $('#timeline').innerHTML = `<svg class="tl-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g}</svg>`;
+    const t = totals();
+    $('#tlTotals').textContent = `${t.entries} in, ${t.exits} out, ${t.denied} denied`;
+  }
+
+  /* ------------------------------------------------------------ alarms */
+  function renderAlarms(newId) {
+    const list = $('#alarmList');
+    $('#alCount').textContent = S.alarms.length; $('#alCount').hidden = !S.alarms.length;
+    if (!S.alarms.length) {
+      list.innerHTML = `<div class="allclear"><span class="allclear__ring">${icon('shield-check', 'i i--lg')}</span><strong class="t-display" style="color:var(--color-text)">All clear</strong><span class="caption">Every open alarm is resolved.</span></div>`;
+      list.style.flex = '1';
+    } else {
+      list.style.flex = '';
+      list.innerHTML = S.alarms.map(a => {
+        const car = S.slots.find(c => c && c.plate === a.plate);
+        return `<div class="alarm-item${a.id === newId ? ' is-new' : ''}" data-id="${a.id}">
+          ${plate(a.plate, 'md', 'plate--denied')}
+          <span class="badge badge--danger" style="justify-self:start">${icon('shield-alert')}No permit</span>
+          <button class="btn btn--primary btn--sm" data-resolve="${a.id}">Resolve</button>
+          <div class="alarm-item__main">
+            <span class="alarm-item__meta">Entered <b>${fHM.format(a.at)}</b> at gate ${a.gate}${car ? `, still parked (${dur(now() - car.enteredAt)})` : ''}</span>
+            ${a.prev ? `<span class="alarm-item__prev">${a.prev} earlier alarm${a.prev > 1 ? 's' : ''} for this plate in 30 days</span>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    // strip + nav
+    const n = S.alarms.length;
+    $('#stripAlarm').hidden = !n; $('#stripAlarmText').textContent = `${n} open alarm${n === 1 ? '' : 's'}`;
+    const nav = $('#navAlarmCount'); nav.textContent = n; nav.hidden = !n; $('#navAlarmSr').textContent = n ? `, ${n} open alarm${n === 1 ? '' : 's'}` : '';
+    document.title = `${n ? `(${n}) ` : ''}Command center – ParkLens`;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-resolve]'); if (b) resolveAlarm(b.dataset.resolve);
+  });
+  function resolveAlarm(id) {
+    const a = S.alarms.find(x => x.id === id); if (!a) return;
+    const el = $(`.alarm-item[data-id="${id}"]`);
+    const done = () => { S.alarms = S.alarms.filter(x => x.id !== id); renderAlarms(); renderKpis(); if (banner.dataset.id === id) hideBanner(); $('#takeover').classList.remove('is-residual'); };
+    if (el && !reduced()) { el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(24px)' }], { duration: 280, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = done; } else done();
+    toast('success', 'Alarm resolved', `${fmt(a.plate)} marked as resolved.`);
+  }
+
+  /* ------------------------------------------------------------ sensors */
+  function renderSensors() {
+    const t = now().getTime();
+    $('#sensors').innerHTML = Object.entries(S.gates).map(([id, g]) => {
+      const age = t - g.last.getTime(), active = age < 10 * 60e3;
+      return `<div class="sensor"><i class="dot${active ? '' : ' dot--static'}" style="${active ? '' : 'background:var(--color-dark-text-subtle)'}" aria-hidden="true"></i>
+        <span class="sensor__name">${id[0].toUpperCase() + id.slice(1)}</span><span class="sensor__state${active ? '' : ' sensor__state--idle'}">${active ? 'Active' : 'Idle'}</span>
+        <span class="sensor__meta" data-gate="${id}">Last event ${ago(age)}</span><span class="sensor__meta">${g.events} today${g.denied ? `, ${g.denied} denied` : ''}</span></div>`;
+    }).join('');
+    $('#gatesReadout').textContent = `${Object.values(S.gates).filter(g => t - g.last.getTime() < 10 * 60e3).length} gates active`;
+  }
+
+  /* ------------------------------------------------------------ feed + scan stage */
+  const stage = $('#stage'), target = $('#target'), verdict = $('#verdict'), reasonEl = $('#stageReason');
+  function feedRow(e, isNew) {
+    const v = e.dir === 'out' ? '<span class="feed__verdict"><i></i>Out</span>'
+      : e.allowed ? '<span class="feed__verdict feed__verdict--allowed"><i></i>Allowed</span>' : '<span class="feed__verdict feed__verdict--denied"><i></i>Denied</span>';
+    return `<li class="feed__row${isNew ? ' is-new' : ''}"><span class="feed__time">${fTime.format(e.time)}</span>${icon(e.dir === 'in' ? 'in' : 'out', `i feed__dir${e.dir === 'out' ? ' feed__dir--out' : ''}`)}${plate(e.plate, 'sm')}${v}<span class="feed__gate">${e.gate}</span></li>`;
+  }
+  function renderFeed() { $('#feed').innerHTML = S.events.slice(1, 9).map(e => feedRow(e, false)).join(''); }
+  function reasonText(e) {
+    if (e.dir === 'out') return `Checked out after ${dur(e.stay)}`;
+    if (!e.allowed) return 'No valid permit. Alarm raised.';
+    return e.permit.type === 'daily' ? `Day permit for today: ${e.permit.holder}` : `Permanent permit: ${e.permit.holder}`;
+  }
+  function lock(e) {
+    target.classList.remove('is-scanning');
+    target.classList.add(e.dir === 'out' ? 'is-out' : e.allowed ? 'is-allowed' : 'is-denied');
+    target.querySelector('.beam-track')?.remove();
+    if (e.dir === 'in') stage.dataset.verdict = e.allowed ? 'allowed' : 'denied'; else stage.removeAttribute('data-verdict');
+    verdict.className = `verdict verdict--${e.dir === 'out' ? 'out' : e.allowed ? 'allowed' : 'denied'}`;
+    verdict.innerHTML = e.dir === 'out' ? `${icon('out', 'i i--sm')}Checked out` : e.allowed ? `${icon('shield-check', 'i i--sm')}Allowed` : `${icon('shield-alert', 'i i--sm')}Denied`;
+    void verdict.offsetWidth; verdict.classList.add('is-on');
+    reasonEl.textContent = reasonText(e); reasonEl.classList.add('is-on');
+  }
+  function decode(txt, final, ms) {
+    const CH = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789';
+    const t0 = performance.now(), n = final.length;
+    return new Promise(res => {
+      const tick = t => {
+        const k = (t - t0) / ms;
+        txt.textContent = [...final].map((ch, i) => (ch === ' ' || k > 0.25 + (i / n) * 0.75) ? ch : CH[Math.floor(Math.random() * CH.length)]).join('');
+        if (k < 1) requestAnimationFrame(tick); else { txt.textContent = final; res(); }
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+  async function scan(e, animate) {
+    stage.removeAttribute('data-verdict'); verdict.className = 'verdict'; reasonEl.classList.remove('is-on');
+    $('#stageGate').innerHTML = `Gate <b>${e.gate}</b>`; $('#stageTime').textContent = fTime.format(e.time);
+    target.className = 'target';
+    target.innerHTML = plate(e.plate, 'lg');
+    if (!animate || reduced()) { lock(e); return; }
+    const chip = target.firstElementChild, txt = chip.querySelector('.plate__txt');
+    chip.style.width = `${chip.getBoundingClientRect().width}px`; chip.style.justifyContent = 'center';
+    target.classList.add('is-scanning');
+    chip.insertAdjacentHTML('beforeend', '<span class="beam-track" aria-hidden="true"><span class="beam"></span></span>');
+    await Promise.all([decode(txt, fmt(e.plate), 820), sleep(900)]);
+    lock(e);
+  }
+
+  /* ------------------------------------------------------------ event engine */
+  let alarmSeq = 1;
+  async function simulate(kind) {
+    const c = count();
+    let e;
+    const pool = PERMITS.filter(p => !S.slots.some(s => s && s.plate === p.plate));
+    const gate = Math.random() < 0.6 ? 'north' : 'south';
+    if (kind === 'denied') {
+      const p = pick(UNKNOWN.filter(u => !S.slots.some(s => s && s.plate === u))) || 'OW1287';
+      e = { dir: 'in', plate: p, permit: null, allowed: false, gate: 'south' };
+    } else if (kind === 'in' || (kind !== 'out' && c.parked < 30 && pool.length && (c.parked <= 18 || Math.random() > 0.38))) {
+      const p = pick(pool); e = { dir: 'in', plate: p.plate, permit: p, allowed: true, gate };
+    } else {
+      const slots = S.slots.map((s, i) => [s, i]).filter(([s]) => s && s.permit);
+      const [car] = pick(slots); e = { dir: 'out', plate: car.plate, permit: car.permit, allowed: null, gate, stay: now() - car.enteredAt };
+    }
+    e.time = now();
+    // previous stage event moves into the list
+    const prev = S.events[0];
+    S.events.unshift(e);
+    if (prev) { const f = $('#feed'); f.insertAdjacentHTML('afterbegin', feedRow(prev, !reduced())); while (f.children.length > 8) f.lastElementChild.remove(); }
+    await scan(e, true);
+    apply(e);
+  }
+  function apply(e) {
+    const hr = zHour(e.time);
+    const g = S.gates[e.gate]; g.last = e.time; g.events++;
+    if (e.dir === 'in') {
+      S.entries[hr]++;
+      const slot = S.slots.findIndex(s => !s);
+      if (slot >= 0) { S.slots[slot] = { plate: e.plate, enteredAt: e.time, permit: e.permit }; carArrive(slot); }
+      if (!e.allowed) { S.denied[hr]++; g.denied++; raiseAlarm(e); }
+    } else {
+      S.exits[hr]++;
+      const slot = S.slots.findIndex(s => s && s.plate === e.plate);
+      if (slot >= 0) { S.slots[slot] = null; carLeave(slot); }
+    }
+    S.occ[hr] = count().parked;
+    renderKpis(); renderGauge(); renderTimeline(); renderRadar(); renderSensors();
+  }
+
+  /* ------------------------------------------------------------ alarm takeover */
+  const banner = $('#banner');
+  function raiseAlarm(e) {
+    const a = { id: `a${++alarmSeq}`, plate: e.plate, at: e.time, gate: e.gate, prev: 0 };
+    S.alarms.unshift(a);
+    renderAlarms(a.id);
+    // 1) edge glow
+    const tk = $('#takeover');
+    tk.classList.remove('is-on', 'is-residual'); void tk.offsetWidth; tk.classList.add('is-on');
+    const end = () => { tk.classList.remove('is-on'); if (document.documentElement.hasAttribute('data-wall') && S.alarms.length) tk.classList.add('is-residual'); };
+    reduced() ? setTimeout(end, 4000) : tk.addEventListener('animationend', end, { once: true });
+    // 2) banner
+    showBanner(a);
+    // 3) badges bump
+    ['#navAlarmCount', '#stripAlarm', '#alCount'].forEach(s => { const el = $(s); if (!el || reduced()) return; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); });
+    // 4) chime + screen reader
+    if (S.sound) chime();
+    $('#announcer').textContent = `Alarm: ${fmt(e.plate)} entered without a valid permit at ${fHM.format(e.time)}.`;
+    setTimeout(() => { $('#announcer').textContent = ''; }, 5000);
+  }
+  function showBanner(a) {
+    banner.dataset.id = a.id;
+    $('#bannerPlate').innerHTML = plate(a.plate, 'md');
+    $('#bannerMeta').textContent = `${fHM.format(a.at)} at gate ${a.gate}`;
+    const more = S.alarms.length - 1;
+    $('#bannerMore').textContent = more > 0 ? `${more} more open alarm${more > 1 ? 's' : ''}` : '';
+    banner.hidden = false;
+    banner.classList.remove('is-entering'); void banner.offsetWidth; if (!reduced()) banner.classList.add('is-entering');
+  }
+  function hideBanner() { banner.hidden = true; delete banner.dataset.id; }
+  $('#bannerDismiss').addEventListener('click', () => { hideBanner(); $('#takeover').classList.remove('is-residual'); });
+  $('#bannerResolve').addEventListener('click', () => banner.dataset.id && resolveAlarm(banner.dataset.id));
+
+  let audio;
+  function chime() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      [[880, 0], [660, 0.22]].forEach(([f, t]) => {
+        const o = audio.createOscillator(), g = audio.createGain(), s = audio.currentTime + t;
+        o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(audio.destination);
+        g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.15, s + 0.01); g.gain.setValueAtTime(0.15, s + 0.15); g.gain.linearRampToValueAtTime(0, s + 0.16);
+        o.start(s); o.stop(s + 0.18);
+      });
+    } catch { /* audio unavailable */ }
+  }
+  $('#soundBtn').addEventListener('click', e => {
+    S.sound = !S.sound; const b = e.currentTarget;
+    b.setAttribute('aria-pressed', S.sound); b.title = S.sound ? 'Alarm sound on' : 'Alarm sound off';
+    b.innerHTML = icon(S.sound ? 'volume' : 'volume-x');
+    if (S.sound) { chime(); toast('info', 'Alarm sound on', "You'll hear a chime for each new alarm."); }
+  });
+
+  /* ------------------------------------------------------------ autopilot */
+  let apTimer;
+  function scheduleAutopilot(ms = rand(4200, 6200)) { clearTimeout(apTimer); if (S.autopilot) apTimer = setTimeout(async () => { await simulate(); scheduleAutopilot(); }, ms); }
+  function setAutopilot(on) {
+    S.autopilot = on;
+    const chip = $('#autopilotChip'); chip.setAttribute('aria-pressed', on); chip.querySelector('span').textContent = on ? 'Autopilot on' : 'Autopilot off';
+    $('#navPilot').hidden = !on;
+    on ? scheduleAutopilot(1500) : clearTimeout(apTimer);
+  }
+  $('#autopilotChip').addEventListener('click', () => setAutopilot(!S.autopilot));
+
+  /* ------------------------------------------------------------ toasts */
+  function toast(tone, title, body) {
+    const ic = { success: 'circle-check', danger: 'circle-alert', info: 'info' }[tone];
+    const el = document.createElement('div');
+    el.className = `toast toast--${tone}`; el.setAttribute('role', tone === 'danger' ? 'alert' : 'status');
+    el.innerHTML = `${icon(ic, 'i i--lg toast__ico')}<div><div class="toast__title">${title}</div>${body ? `<div class="toast__body">${body}</div>` : ''}</div><button class="btn btn--ghost btn--icon" aria-label="Dismiss">${icon('x')}</button>`;
+    const box = $('#toasts'); box.prepend(el); while (box.children.length > 3) box.lastElementChild.remove();
+    const close = () => { el.classList.add('is-leaving'); setTimeout(() => el.remove(), 240); };
+    el.querySelector('button').addEventListener('click', close);
+    setTimeout(close, tone === 'danger' ? 8000 : 5000);
+  }
+
+  /* ------------------------------------------------------------ wall mode */
+  const html = document.documentElement;
+  let idleT;
+  function setWall(on) {
+    on ? html.setAttribute('data-wall', '') : html.removeAttribute('data-wall');
+    $('#wallBtn').setAttribute('aria-label', on ? 'Exit wall mode' : 'Enter wall mode');
+    if (on && document.fullscreenEnabled && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+    if (!on && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    renderTimeline();
+  }
+  $('#wallBtn').addEventListener('click', () => setWall(!html.hasAttribute('data-wall')));
+  $('#wallBtn2').addEventListener('click', () => setWall(true));
+  $('#wallExit').addEventListener('click', () => setWall(false));
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && html.hasAttribute('data-wall')) setWall(false); });
+  document.addEventListener('pointermove', () => { html.classList.remove('is-idle'); clearTimeout(idleT); if (html.hasAttribute('data-wall')) idleT = setTimeout(() => html.classList.add('is-idle'), 3000); });
+
+  /* ------------------------------------------------------------ command palette */
+  const scrim = $('#scrim'), pIn = $('#pInput'), pList = $('#pList');
+  const PAGES = [['Command center', 'dashboard'], ['Alarms', 'siren'], ['Requests', 'inbox'], ['Permits', 'badge'], ['Activity', 'activity'], ['Gate simulator', 'scan'], ['Settings', 'settings']]
+    .map(([label, ic]) => ({ kind: 'page', label, ic, desc: 'Go to page', run: () => toast('info', `Go to ${label}`) }));
+  const ACTIONS = () => [
+    { kind: 'action', label: 'New permit', ic: 'plus', desc: 'Create an approved permit', run: () => toast('info', 'New permit', 'Opens the create-permit dialog.') },
+    { kind: 'action', label: 'Simulate check-in', ic: 'scan', desc: 'Send a check-in from the gate simulator', run: () => simulate('in') },
+    { kind: 'action', label: S.autopilot ? 'Stop autopilot' : 'Start autopilot', ic: 'pilot', desc: 'Simulated gate traffic', run: () => setAutopilot(!S.autopilot) },
+    { kind: 'action', label: html.hasAttribute('data-wall') ? 'Exit wall mode' : 'Enter wall mode', ic: 'max', desc: 'Fullscreen command center for a reception monitor', run: () => setWall(!html.hasAttribute('data-wall')) },
+    { kind: 'action', label: 'Switch language to Deutsch', ic: 'globe', desc: 'Sprache: Deutsch', run: () => toast('info', 'Sprache: Deutsch') },
+    { kind: 'action', label: S.sound ? 'Turn alarm sound off' : 'Turn alarm sound on', ic: S.sound ? 'volume-x' : 'volume', desc: 'Chime on each new alarm', run: () => $('#soundBtn').click() },
+    { kind: 'action', label: 'Log out', ic: 'logout', desc: 'End this session', run: () => toast('info', 'Logged out') },
+  ];
+  const knownPlates = () => {
+    const set = new Map();
+    PERMITS.forEach(p => set.set(p.plate, { plate: p.plate, permit: p }));
+    parkedCars().forEach(c => set.set(c.plate, { plate: c.plate, permit: c.permit }));
+    S.alarms.forEach(a => set.set(a.plate, { plate: a.plate, permit: permitOf.get(a.plate) || null }));
+    return [...set.values()];
+  };
+  function hlPlate(p, q) {
+    const f = fmt(p); if (!q) return f;
+    const i = p.indexOf(q); if (i < 0) return f;
+    let out = '', k = 0;
+    for (const ch of f) { if (ch === ' ') { out += ch; continue; } const inside = k >= i && k < i + q.length; out += inside ? `<mark>${ch}</mark>` : ch; k++; }
+    return out.replace(/<\/mark>( ?)<mark>/g, '$1');
+  }
+  const hl = (s, q) => { if (!q) return s; const i = s.toLowerCase().indexOf(q.toLowerCase()); return i < 0 ? s : `${s.slice(0, i)}<mark>${s.slice(i, i + q.length)}</mark>${s.slice(i + q.length)}`; };
+  let items = [], active = 0, lastFocus = null;
+  function plateItem(x, qn) {
+    const car = S.slots.find(c => c && c.plate === x.plate);
+    const alarms = S.alarms.filter(a => a.plate === x.plate).length;
+    const badges = [
+      car ? `<span class="badge badge--live">${icon('car')}Parked ${dur(now() - car.enteredAt)}</span>` : '',
+      x.permit ? `<span class="badge badge--success">${x.permit.type === 'daily' ? 'Day permit' : 'Permanent'}</span>` : '<span class="badge badge--danger">No permit</span>',
+      alarms ? `<span class="badge badge--danger">${icon('siren')}${alarms} open alarm${alarms > 1 ? 's' : ''}</span>` : '',
+    ].join('');
+    return { kind: 'plate', plate: x.plate, html: `<span class="plate plate--sm"${isCH(x.plate) ? ' data-ch' : ''} translate="no">${hlPlate(x.plate, qn)}</span><span class="palette__text"><span class="palette__label">${x.permit ? x.permit.holder : 'Unknown vehicle'}</span><span class="palette__desc">${badges}</span></span>`, run: () => toast('info', `Plate history: ${fmt(x.plate)}`, 'Opens the PlateDossier drawer with permits, sessions and alarms.') };
+  }
+  function buildPalette() {
+    const q = pIn.value.trim(), qn = norm(q), ql = q.toLowerCase();
+    const groups = [];
+    if (!q) {
+      groups.push(['Recent plates', ['ZH999999', 'ZH123456', 'ZH555111'].map(p => plateItem({ plate: p, permit: permitOf.get(p) || null }, ''))]);
+      groups.push(['Pages', PAGES]); groups.push(['Actions', ACTIONS()]);
+    } else {
+      const plates = qn.length >= 2 ? knownPlates().filter(x => x.plate.includes(qn) || (x.permit && q.length >= 2 && x.permit.holder.toLowerCase().includes(ql))).slice(0, 6) : [];
+      if (plates.length) groups.push(['Plates', plates.map(x => plateItem(x, qn))]);
+      const pg = PAGES.filter(p => p.label.toLowerCase().includes(ql)); if (pg.length) groups.push(['Pages', pg]);
+      const ac = ACTIONS().filter(a => a.label.toLowerCase().includes(ql) || a.desc.toLowerCase().includes(ql)); if (ac.length) groups.push(['Actions', ac]);
+      groups.push(['Search', [
+        { kind: 'search', label: `Search permits for “${q}”`, ic: 'badge', desc: 'Permits, filtered', run: () => toast('info', `Permits filtered by “${q}”`) },
+        { kind: 'search', label: `Search the gate log for “${q}”`, ic: 'history', desc: 'Activity, gate log', run: () => toast('info', `Gate log filtered by “${q}”`) },
+      ]]);
+    }
+    items = []; let html = '';
+    groups.forEach(([label, list], gi) => {
+      html += `<div role="group" aria-labelledby="pg-${gi}"><div class="palette__group" id="pg-${gi}">${label}</div>`;
+      list.forEach(it => {
+        const i = items.length; items.push(it);
+        const inner = it.kind === 'plate' ? it.html : `<span class="palette__ico">${icon(it.ic)}</span><span class="palette__text"><span class="palette__label">${hl(it.label, q)}</span><span class="palette__desc">${it.desc}</span></span>`;
+        html += `<div class="palette__item" role="option" id="p-opt-${i}" data-i="${i}" aria-selected="false">${inner}<span class="palette__right">${it.kind === 'page' ? 'Page' : ''}</span></div>`;
+      });
+      html += '</div>';
+    });
+    pList.innerHTML = items.length ? html : '<div class="palette__empty">No matches</div>';
+    $('#pCount').textContent = `${items.length} result${items.length === 1 ? '' : 's'}`;
+    setActive(0);
+  }
+  function setActive(i) {
+    if (!items.length) return;
+    active = (i + items.length) % items.length;
+    $$('.palette__item', pList).forEach(el => { const on = +el.dataset.i === active; el.setAttribute('aria-selected', on); const r = el.querySelector('.palette__right'); if (on) r.innerHTML = `<kbd>${icon('enter', 'i i--sm')}</kbd>`; else r.textContent = items[+el.dataset.i].kind === 'page' ? 'Page' : ''; });
+    pIn.setAttribute('aria-activedescendant', `p-opt-${active}`);
+    $(`#p-opt-${active}`)?.scrollIntoView({ block: 'nearest' });
+  }
+  function openPalette(q = '') {
+    lastFocus = document.activeElement; scrim.hidden = false; pIn.value = q; buildPalette(); pIn.focus(); hideTip();
+  }
+  function closePalette() { scrim.hidden = true; lastFocus?.focus?.(); }
+  function runActive() { const it = items[active]; if (!it) return; closePalette(); it.run(); }
+  pIn.addEventListener('input', buildPalette);
+  pIn.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(active + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(active - 1); }
+    else if (e.key === 'Enter') { e.preventDefault(); runActive(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+    else if (e.key === 'Tab') { e.preventDefault(); }
+  });
+  pList.addEventListener('pointermove', e => { const it = e.target.closest('.palette__item'); if (it && +it.dataset.i !== active) setActive(+it.dataset.i); });
+  pList.addEventListener('click', e => { const it = e.target.closest('.palette__item'); if (it) { setActive(+it.dataset.i); runActive(); } });
+  scrim.addEventListener('pointerdown', e => { if (e.target === scrim) closePalette(); });
+  document.addEventListener('keydown', e => {
+    const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); scrim.hidden ? openPalette() : closePalette(); }
+    else if (e.key === '/' && !typing && scrim.hidden) { e.preventDefault(); openPalette(); }
+  });
+  $('#openPalette').addEventListener('click', () => openPalette());
+  $('#demoPalette').addEventListener('click', () => openPalette('zh'));
+  $('#demoAlarm').addEventListener('click', () => simulate('denied'));
+
+  /* ------------------------------------------------------------ spotlight */
+  let spotRaf = 0, spotEv;
+  document.addEventListener('pointermove', e => {
+    spotEv = e; if (spotRaf || reduced()) return;
+    spotRaf = requestAnimationFrame(() => {
+      spotRaf = 0; const p = spotEv.target.closest?.('.spot'); if (!p) return;
+      const r = p.getBoundingClientRect();
+      p.style.setProperty('--mx', `${spotEv.clientX - r.left}px`); p.style.setProperty('--my', `${spotEv.clientY - r.top}px`);
+    });
+  }, { passive: true });
+
+  /* ------------------------------------------------------------ clock + tickers */
+  function tick() {
+    const n = now();
+    $('#clock').textContent = fTime.format(n);
+    Object.entries(S.gates).forEach(([id, g]) => { const el = $(`[data-gate="${id}"]`); if (el) el.textContent = `Last event ${ago(n - g.last)}`; });
+    setTimeout(tick, 1000 - (n.getTime() % 1000) + 5);
+  }
+  document.addEventListener('visibilitychange', () => html.classList.toggle('is-hidden', document.hidden));
+
+  /* ------------------------------------------------------------ boot (power-on sequence) */
+  const cc = $('#cc');
+  [...cc.children].forEach((el, i) => { if (!el.classList.contains('kpis')) el.style.setProperty('--i', i + 4); });
+  renderKpis(true); renderGauge(true); renderLot(); renderTimeline(true); renderAlarms(); renderSensors(); renderFeed(); renderRadar();
+  scan(S.events[0], false);
+  tick();
+  setTimeout(() => cc.classList.remove('is-booting'), 1400);
+  setAutopilot(S.autopilot);
+  if (params.has('wall')) setWall(true);
+  if (params.has('alarm')) setTimeout(() => simulate('denied'), 1600);
+  if (params.has('palette')) setTimeout(() => openPalette(params.get('palette') || ''), 900);
+})();
+</script>
+</body>
+</html>

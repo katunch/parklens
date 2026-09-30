@@ -133,7 +133,9 @@ export function RequestPage() {
     const statusUrl = `${window.location.origin}/request/${success.result.token}`;
     return (
       <div className="request-success">
-        <CircleCheck size={32} className="request-success__icon" aria-hidden="true" />
+        <span className="request-success__icon" aria-hidden="true">
+          <CircleCheck size={28} />
+        </span>
         <h1 className="public-title" tabIndex={-1} ref={successHeading}>
           {t('request.success.title')}
         </h1>

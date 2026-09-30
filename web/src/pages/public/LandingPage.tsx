@@ -7,8 +7,12 @@ import { PlateInput } from '../../components/Plate';
 import { useDocumentTitle } from '../../lib/hooks';
 import { isValidPlate, normalizePlate } from '../../lib/plate';
 import type { MaybeMsg } from '../../lib/validation';
+import { ScanHero } from './ScanHero';
 
-/** `/` – get people into the request form quickly (UX §5.1). No API calls. */
+/**
+ * `/` – get people into the request form quickly (UX §5.1). No API calls. From 1024px the
+ * scanner hero sits beside the headline and form; below that a compact version sits above the form.
+ */
 export function LandingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -31,8 +35,17 @@ export function LandingPage() {
 
   return (
     <div className="landing">
-      <h1 className="public-title">{t('landing.title')}</h1>
-      <p className="public-lead">{t('landing.lead')}</p>
+      <div className="landing__intro">
+        <h1 className="public-title">{t('landing.title')}</h1>
+        <p className="public-lead">{t('landing.lead')}</p>
+      </div>
+
+      <div className="landing__hero">
+        <ScanHero />
+      </div>
+      <div className="landing__hero-compact">
+        <ScanHero compact />
+      </div>
 
       <form
         className="landing__form"

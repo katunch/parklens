@@ -30,6 +30,7 @@ export default function SettingsPage() {
       <PageHeader title={t('settings.title')} />
       <div className="settings">
         <NotificationsPanel />
+        <LotPanel />
         <CameraPanel />
         <AdminsPanel />
         <PasswordPanel />
@@ -86,7 +87,7 @@ function WebhookForm({ saved }: { saved: WebhookSettings }) {
   });
 
   const save = useMutation({
-    mutationFn: (v: WebhookValues) => api.saveSettings({ enabled: v.enabled, url: v.url.trim(), format: v.format }),
+    mutationFn: (v: WebhookValues) => api.saveSettings({ webhook: { enabled: v.enabled, url: v.url.trim(), format: v.format } }),
     onSuccess: (res) => {
       qc.setQueryData(qk.settings, res);
       form.reset({ enabled: res.webhook.enabled, url: res.webhook.url, format: res.webhook.format });
@@ -182,6 +183,109 @@ function WebhookForm({ saved }: { saved: WebhookSettings }) {
               : t('settings.notifications.testFailedStatus', { status: testResult.status ?? '' })}
         </InlineAlert>
       )}
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 1b. Parking lot (v2)
+// ---------------------------------------------------------------------------
+
+export const CAPACITY_MIN = 1;
+export const CAPACITY_MAX = 5000;
+
+/** Lot capacity: a whole number from 1 to 5000 (UX §5.12, validation.capacityInvalid). */
+export function validateCapacity(value: string) {
+  const v = value.trim();
+  return /^\d+$/.test(v) && Number(v) >= CAPACITY_MIN && Number(v) <= CAPACITY_MAX ? null : { key: 'validation.capacityInvalid' };
+}
+
+interface LotValues extends Record<string, unknown> {
+  capacity: string;
+}
+
+function LotPanel() {
+  const { t } = useTranslation();
+  const settings = useQuery({ queryKey: qk.settings, queryFn: api.settings });
+  return (
+    <Panel title={t('settings.lot.title')}>
+      <p className="panel-lead">{t('settings.lot.lead')}</p>
+      {settings.isError && !settings.data ? (
+        <ErrorState onRetry={() => void settings.refetch()} retrying={settings.isFetching} />
+      ) : settings.data ? (
+        <LotForm capacity={settings.data.lot.capacity} />
+      ) : (
+        <Skeleton height={40} width="40%" />
+      )}
+    </Panel>
+  );
+}
+
+function LotForm({ capacity }: { capacity: number }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [formError, setFormError] = useState<string | null>(null);
+  const form = useForm<LotValues>({
+    initial: { capacity: String(capacity) },
+    idPrefix: 'lot',
+    validate: (v) => ({ capacity: validateCapacity(v.capacity) }),
+  });
+  const save = useMutation({
+    mutationFn: (v: LotValues) => api.saveSettings({ lot: { capacity: Number(v.capacity.trim()) } }),
+    onSuccess: (res) => {
+      qc.setQueryData(qk.settings, res);
+      void qc.invalidateQueries({ queryKey: qk.summary });
+      form.reset({ capacity: String(res.lot.capacity) });
+      toast({ tone: 'success', message: t('settings.lot.saved') });
+    },
+    onError: (e) => {
+      const err = toApiError(e);
+      if (err.code === 'VALIDATION_ERROR') return form.setFieldError('capacity', { key: 'validation.capacityInvalid' });
+      setFormError(t(errorKey(err)));
+    },
+  });
+  const { values, errors } = form;
+  return (
+    <form
+      className="lot-form"
+      noValidate
+      onSubmit={form.handleSubmit((v) => {
+        setFormError(null);
+        save.mutate(v);
+      })}
+    >
+      <Field id={form.fieldId('capacity')} label={t('settings.lot.capacityLabel')} hint={t('settings.lot.capacityHint')} error={errors.capacity}>
+        {(aria) => (
+          <div className="input-suffix">
+            <TextInput
+              {...aria}
+              type="number"
+              inputMode="numeric"
+              min={CAPACITY_MIN}
+              max={CAPACITY_MAX}
+              step={1}
+              value={values.capacity}
+              onChange={(e) => form.set('capacity', e.target.value)}
+              invalid={Boolean(errors.capacity)}
+              required
+            />
+            <span className="input-suffix__text" aria-hidden="true">
+              {t('settings.lot.capacitySuffix')}
+            </span>
+          </div>
+        )}
+      </Field>
+      {formError && (
+        <InlineAlert tone="danger" role="alert">
+          {formError}
+        </InlineAlert>
+      )}
+      <div className="button-row">
+        <Button type="submit" variant="primary" loading={save.isPending}>
+          {t('settings.lot.save')}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -479,7 +583,7 @@ function PasswordPanel() {
   });
   const { values, errors } = form;
   return (
-    <Panel title={t('settings.account.title')}>
+    <Panel title={t('settings.account.title')} id="password">
       <form
         className="password-form"
         noValidate

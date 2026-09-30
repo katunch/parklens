@@ -16,13 +16,13 @@ import { useTranslation } from 'react-i18next';
 import type { AlarmStatus, AlarmType, PermitStatus } from '../api/types';
 import { cx } from '../lib/cx';
 
-export type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'info';
+export type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'info' | 'live';
 
 /** StatusBadge: icon + text, always both (UX §6). */
 export function Badge({ tone, icon: Icon, children, className }: { tone: Tone; icon?: LucideIcon; children: ReactNode; className?: string }) {
   return (
     <span className={cx('badge', `badge--${tone}`, className)}>
-      {Icon && <Icon size={14} aria-hidden="true" />}
+      {Icon && <Icon size={13} aria-hidden="true" />}
       <span>{children}</span>
     </span>
   );
@@ -117,7 +117,7 @@ export function CountBadge({ count, tone, className }: { count: number | undefin
     const c = count ?? 0;
     if (c > prev.current) {
       setBump(true);
-      const id = window.setTimeout(() => setBump(false), 260);
+      const id = window.setTimeout(() => setBump(false), 480);
       prev.current = c;
       return () => window.clearTimeout(id);
     }
@@ -126,7 +126,7 @@ export function CountBadge({ count, tone, className }: { count: number | undefin
   }, [count]);
   if (!count) return null;
   return (
-    <span className={cx('count-badge', `count-badge--${tone}`, bump && 'is-bumped', className)} aria-hidden="true">
+    <span className={cx('count-badge', `count-badge--${tone}`, bump && 'bump', className)} aria-hidden="true">
       {count > 99 ? '99+' : count}
     </span>
   );

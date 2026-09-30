@@ -144,7 +144,7 @@
   "nav": {
     "mainLabel": "Main navigation",
     "skipToContent": "Skip to content",
-    "dashboard": "Dashboard",
+    "dashboard": "Command center",
     "alarms": "Alarms",
     "requests": "Requests",
     "permits": "Permits",
@@ -170,7 +170,30 @@
       "label": "Alarm sound",
       "enabled": "Alarm sound on. You'll hear a chime for each new alarm.",
       "disabled": "Alarm sound off"
-    }
+    },
+    "dashboardShort": "Center"
+  },
+
+  "strip": {
+    "autopilot": "Autopilot on",
+    "autopilotHint": "Simulated gate traffic is running. Select to manage it.",
+    "system": {
+      "ok": "System OK",
+      "degraded": "Database unreachable",
+      "offline": "Server unreachable"
+    },
+    "gatesActive_one": "{{count}} gate active",
+    "gatesActive_other": "{{count}} gates active",
+    "gatesNone": "No recent gate activity",
+    "search": "Search plates, pages, actions",
+    "searchShort": "Search",
+    "clockLabel": "Local time in {{place}}",
+    "wallEnter": "Enter wall mode",
+    "wallExit": "Exit wall mode",
+    "account": "Account menu for {{name}}",
+    "changePassword": "Change password",
+    "lot": "Lot",
+    "lotLabel": "Lot occupancy: {{parked}} of {{capacity}} spaces"
   },
 
   "public": {
@@ -200,6 +223,13 @@
         "title": "Check the status",
         "body": "Open your status link, or enter the reference code and plate."
       }
+    },
+    "hero": {
+      "camera": "Entrance camera",
+      "live": "Live",
+      "gate": "Gate",
+      "reasonPermanent": "Valid permanent permit",
+      "reasonDaily": "Valid day permit for today"
     }
   },
 
@@ -324,7 +354,7 @@
   },
 
   "dashboard": {
-    "title": "Dashboard",
+    "title": "Command center",
     "today": "Today, {{date}}",
     "kpi": {
       "openAlarms": "Open alarms",
@@ -339,12 +369,20 @@
       "viewParked": "View parked cars",
       "reviewRequests": "Review requests",
       "viewLog": "View gate log",
-      "viewPermits": "View permits"
+      "viewPermits": "View permits",
+      "deniedToday": "Denied today: {{count}}",
+      "capacityUnit": "/ {{capacity}}",
+      "entriesThisHour": "{{count}} in the current hour",
+      "oldestRequest": "Oldest sent {{time}}",
+      "permitsBreakdown": "Permanent {{permanent}}, day {{daily}}"
     },
     "openAlarms": {
       "title": "Open alarms",
       "emptyTitle": "No open alarms",
-      "emptyBody": "New alarms appear here instantly."
+      "emptyBody": "New alarms appear here instantly.",
+      "meta": "Entered {{time}} at gate {{gate}}",
+      "metaParked": "Entered {{time}} at gate {{gate}}, still parked ({{duration}})",
+      "metaOverstay": "Detected {{time}}, still parked ({{duration}})"
     },
     "parkedNow": {
       "title": "Parked now",
@@ -360,7 +398,177 @@
       "title": "Waiting for approval",
       "emptyTitle": "No requests waiting",
       "emptyBody": "New requests show up here as soon as they're sent."
+    },
+    "gauge": {
+      "title": "Occupancy",
+      "free": "free",
+      "freeLabel": "Free spaces",
+      "full": "Full",
+      "ofCapacity": "of {{capacity}}, {{percent}} %",
+      "aria": "{{parked}} of {{capacity}} spaces occupied, {{unauthorized}} without permit",
+      "overCapacity": "{{count}} over capacity",
+      "withPermit": "With permit",
+      "noPermit": "No permit",
+      "radarCaption": "Radar: gate events of the last hour",
+      "radarHint": "Each dot is a gate event from the last 60 minutes, placed by minute like on a clock face. One ring per gate."
+    },
+    "lot": {
+      "title": "Parked vehicles",
+      "caption": "One tile per parked car, in order of arrival. Tiles are symbolic, not real bays.",
+      "legend": {
+        "permanent": "Permanent",
+        "daily": "Day permit",
+        "none": "No permit"
+      },
+      "overflow": "+{{count}} over capacity",
+      "unknownVehicle": "Unknown vehicle",
+      "tileLabel": "{{plate}}, {{holder}}, {{permit}}, parked {{duration}}",
+      "tooltip": {
+        "permanent": "Permanent permit",
+        "daily": "Day permit for today",
+        "none": "No permit",
+        "noneAlarm": "No permit, alarm open",
+        "parkedSince": "Parked {{duration}} since {{time}}",
+        "hint": "Select for plate history"
+      }
+    },
+    "feed": {
+      "title": "Gate feed",
+      "listLabel": "Latest gate events",
+      "stageGate": "Gate {{gate}}",
+      "stageNoGate": "Unknown gate",
+      "verdict": {
+        "allowed": "Allowed",
+        "denied": "Denied",
+        "out": "Checked out"
+      },
+      "reasonOut": "Checked out after {{duration}}",
+      "reasonOutUnknown": "Exit recorded, no car was checked in",
+      "rowAnnounce": "{{plate}}, {{verdict}}, gate {{gate}}",
+      "emptyTitle": "Waiting for the first car",
+      "emptyBody": "Gate events appear here as the camera reports them."
+    },
+    "sensors": {
+      "title": "Gates",
+      "state": {
+        "active": "Active",
+        "idle": "Idle",
+        "silent": "Silent"
+      },
+      "unnamed": "Unnamed gate",
+      "lastEvent": "Last event {{time}}",
+      "counts": "{{count}} today",
+      "countsDenied": "{{count}} today, {{denied}} denied",
+      "hint": "Based on the latest gate event. ParkLens can't see whether a camera is online.",
+      "more": "+{{count}} more"
+    },
+    "timeline": {
+      "title": "Today",
+      "legend": {
+        "entries": "Entries",
+        "exits": "Exits",
+        "denied": "Denied",
+        "occupancy": "Parked"
+      },
+      "totals": "{{entries}} in, {{exits}} out, {{denied}} denied",
+      "capacity": "{{capacity}} max.",
+      "now": "Now",
+      "aria": "Hourly entries and exits today, with parked cars over time. Now {{parked}} parked.",
+      "tableCaption": "Traffic per hour today",
+      "hourColumn": "Hour"
     }
+  },
+
+  "palette": {
+    "label": "Command palette",
+    "placeholder": "Search a plate, or type a page or action",
+    "groups": {
+      "recent": "Recent plates",
+      "plates": "Plates",
+      "pages": "Pages",
+      "actions": "Actions",
+      "search": "Search"
+    },
+    "pageDesc": "Go to page",
+    "pageTag": "Page",
+    "actions": {
+      "newPermit": "New permit",
+      "newPermitDesc": "Create an approved permit",
+      "simulateCheckIn": "Simulate check-in",
+      "simulateCheckInPlate": "Simulate check-in for {{plate}}",
+      "simulateDesc": "Open the gate simulator",
+      "autopilotStart": "Start autopilot",
+      "autopilotStop": "Stop autopilot",
+      "autopilotDesc": "Simulated gate traffic",
+      "wallEnter": "Enter wall mode",
+      "wallExit": "Exit wall mode",
+      "wallDesc": "Fullscreen command center for a reception monitor",
+      "language": "Switch language to {{language}}",
+      "languageDesc": "Change the interface language",
+      "soundOn": "Turn alarm sound on",
+      "soundOff": "Turn alarm sound off",
+      "soundDesc": "Chime on each new alarm",
+      "logout": "Log out",
+      "logoutDesc": "End this session"
+    },
+    "searchPermits": "Search permits for “{{query}}”",
+    "searchPermitsDesc": "Permits, filtered",
+    "searchLog": "Search the gate log for “{{query}}”",
+    "searchLogDesc": "Activity, gate log",
+    "plate": {
+      "unknown": "Unknown vehicle",
+      "parked": "Parked {{duration}}",
+      "permanent": "Permanent",
+      "daily": "Day permit",
+      "noPermit": "No permit",
+      "pending": "Request pending",
+      "openAlarms_one": "{{count}} open alarm",
+      "openAlarms_other": "{{count}} open alarms"
+    },
+    "searching": "Searching…",
+    "noResults": "No matches for “{{query}}”",
+    "noResultsHint": "Try a plate like ZH 123 456, or a page name.",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "hints": {
+      "move": "Move",
+      "open": "Open",
+      "close": "Close"
+    }
+  },
+
+  "dossier": {
+    "label": "Plate history for {{plate}}",
+    "status": {
+      "parked": "Parked since {{time}} ({{duration}})",
+      "notParked": "Not on the lot",
+      "lastSeen": "Last seen {{time}}"
+    },
+    "sections": {
+      "permits": "Permits",
+      "visits": "Recent visits",
+      "alarms": "Alarms"
+    },
+    "empty": {
+      "permits": "No permits for this plate.",
+      "visits": "No visits recorded.",
+      "alarms": "No alarms for this plate."
+    },
+    "visit": {
+      "parked": "In {{entered}}, still parked ({{duration}})",
+      "closed": "In {{entered}}, out {{exited}} ({{duration}})"
+    },
+    "actions": {
+      "createPermit": "Create permit for this plate",
+      "openLog": "Open gate log",
+      "openPermits": "Open in permits"
+    }
+  },
+
+  "wall": {
+    "label": "Wall mode",
+    "fullscreenPrompt": "Show the command center in fullscreen on this display.",
+    "fullscreenAction": "Go fullscreen"
   },
 
   "alarms": {
@@ -597,6 +805,29 @@
     }
   },
 
+  "autopilot": {
+    "title": "Autopilot",
+    "lead": "Generates realistic gate traffic every few seconds: mostly cars with a permit, now and then an unknown plate. Useful for demos.",
+    "warning": "The events are real. They create sessions, alarms and notifications. Autopilot stops when you log out or close this tab.",
+    "toggle": "Run autopilot",
+    "pace": {
+      "label": "Pace",
+      "calm": "Calm",
+      "busy": "Busy",
+      "calmHint": "Every 8–15 s",
+      "busyHint": "Every 3–6 s"
+    },
+    "stats": "Sent: {{events}}, alarms: {{alarms}}",
+    "badge": "Autopilot",
+    "started": "Autopilot started",
+    "stopped": "Autopilot stopped",
+    "paused": "Autopilot paused after repeated errors: {{error}}",
+    "popover": {
+      "stop": "Stop autopilot",
+      "open": "Open gate simulator"
+    }
+  },
+
   "settings": {
     "title": "Settings",
     "notifications": {
@@ -664,6 +895,15 @@
       "submit": "Change password",
       "success": "Password changed",
       "wrongCurrent": "The current password is incorrect."
+    },
+    "lot": {
+      "title": "Parking lot",
+      "lead": "Used by the command center for occupancy and free spaces.",
+      "capacityLabel": "Capacity",
+      "capacityHint": "Number of parking spaces, 1 to 5000.",
+      "capacitySuffix": "spaces",
+      "save": "Save capacity",
+      "saved": "Lot capacity saved"
     }
   },
 
@@ -713,6 +953,7 @@
     "urlRequired": "Enter the webhook URL.",
     "urlInvalid": "Enter a URL starting with https:// or http://.",
     "referenceRequired": "Enter the reference code.",
-    "gateTooLong": "Use at most {{max}} characters."
+    "gateTooLong": "Use at most {{max}} characters.",
+    "capacityInvalid": "Enter a whole number from 1 to 5000."
   }
 }

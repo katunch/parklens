@@ -110,6 +110,19 @@ describe('updateSettingsSchema', () => {
     });
   });
 
+  it('accepts lot only, webhook only or both; requires at least one', () => {
+    expect(updateSettingsSchema.parse({ lot: { capacity: 120 } })).toEqual({ lot: { capacity: 120 } });
+    expect(updateSettingsSchema.parse({ webhook: { enabled: false, url: '', format: 'generic' }, lot: { capacity: 1 } })).toEqual({
+      webhook: { enabled: false, url: '', format: 'generic' },
+      lot: { capacity: 1 },
+    });
+    expect(updateSettingsSchema.safeParse({}).success).toBe(false);
+    for (const capacity of [0, 5001, 12.5, '40', null]) {
+      expect(updateSettingsSchema.safeParse({ lot: { capacity } }).success, String(capacity)).toBe(false);
+    }
+    expect(updateSettingsSchema.safeParse({ lot: {} }).success).toBe(false);
+  });
+
   it('allows an empty URL when disabled', () => {
     expect(updateSettingsSchema.parse({ webhook: { enabled: false, url: null, format: 'generic' } }).webhook).toEqual({
       enabled: false,

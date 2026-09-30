@@ -1,21 +1,25 @@
 import { useMutation } from '@tanstack/react-query';
-import { CircleCheck, CircleX, LogIn, LogOut, ScanLine, Shuffle } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { CircleCheck, CircleX, LogIn, LogOut, Navigation, ScanLine, Shuffle } from 'lucide-react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { api } from '../../api/endpoints';
 import { errorKey, toApiError } from '../../api/errors';
-import type { CheckInResult, CheckOutResult } from '../../api/types';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { Field, TextInput } from '../../components/Field';
+import { Field, Switch, TextInput } from '../../components/Field';
+import { Badge } from '../../components/Badge';
+import { SegmentedControl } from '../../components/SegmentedControl';
+import { useAutopilot } from '../../live/Autopilot';
+import { addSimResult, clearSimResults, useSimResults, type SimResult } from '../../lib/simResults';
+import type { Pace } from '../../lib/autopilot';
 import { InlineAlert } from '../../components/InlineAlert';
 import { PageHeader } from '../../components/Misc';
 import { Panel } from '../../components/Panel';
 import { PlateChip, PlateInput } from '../../components/Plate';
 import { cx } from '../../lib/cx';
 import { datetimeLocalToIso } from '../../lib/format';
-import { markFresh, useFresh } from '../../lib/fresh';
+import { useFresh } from '../../lib/fresh';
 import { randomPlate } from '../../lib/plate';
 import { STORAGE_KEYS, storage } from '../../lib/storage';
 import { useFmt } from '../../lib/timezone';
@@ -30,32 +34,19 @@ const DEMO_PLATES = [
   { plate: 'LU 777', caption: 'rejected' },
 ] as const;
 
-const MAX_RESULTS = 20;
-
-type SimResult =
-  | { id: string; kind: 'in'; at: string; gate: string | null; res: CheckInResult }
-  | { id: string; kind: 'out'; at: string; gate: string | null; res: CheckOutResult };
 
 /** `/admin/simulator` – check-in / check-out any plate via the real gate endpoints (UX §5.11). */
 export default function SimulatorPage() {
   const { t } = useTranslation();
-  const [plate, setPlate] = useState('');
+  const [params] = useSearchParams();
+  const [plate, setPlate] = useState(() => (params.get('plate') ?? '').toUpperCase());
   const [plateError, setPlateError] = useState<MaybeMsg>(null);
   const [gate, setGate] = useState(() => storage.local.get(STORAGE_KEYS.simGate) ?? t('simulator.gateDefault'));
   const [time, setTime] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
-  const [results, setResults] = useState<SimResult[]>(() => storage.session.getJson<SimResult[]>(STORAGE_KEYS.simResults, []));
+  const results = useSimResults();
   const checkInRef = useRef<HTMLButtonElement>(null);
   const gateError = validateGate(gate);
-
-  useEffect(() => {
-    storage.session.setJson(STORAGE_KEYS.simResults, results);
-  }, [results]);
-
-  const addResult = (r: SimResult) => {
-    markFresh(r.id);
-    setResults((prev) => [r, ...prev].slice(0, MAX_RESULTS));
-  };
 
   const mutation = useMutation({
     mutationFn: async (kind: 'in' | 'out'): Promise<SimResult> => {
@@ -70,7 +61,7 @@ export default function SimulatorPage() {
       const res = await api.checkOut(body);
       return { id: `sim-${res.eventId}`, kind, at, gate: gateId, res };
     },
-    onSuccess: addResult,
+    onSuccess: addSimResult,
     onError: (e) => {
       const err = toApiError(e);
       if (err.code === 'INVALID_PLATE') {
@@ -104,6 +95,8 @@ export default function SimulatorPage() {
     <div className="page">
       <PageHeader title={t('simulator.title')} lead={t('simulator.lead')} />
       <div className="simulator">
+        <div className="simulator__col">
+        <AutopilotPanel />
         <Panel title={t('simulator.formTitle')} className="simulator__form">
           <form
             noValidate
@@ -204,13 +197,14 @@ export default function SimulatorPage() {
             </div>
           </form>
         </Panel>
+        </div>
 
         <Panel
           title={t('simulator.resultsTitle')}
           className="simulator__results"
           action={
             results.length > 0 ? (
-              <Button variant="ghost" size="sm" onClick={() => setResults([])}>
+              <Button variant="ghost" size="sm" onClick={clearSimResults}>
                 {t('simulator.clearResults')}
               </Button>
             ) : undefined
@@ -275,6 +269,11 @@ function ResultList({ results }: { results: SimResult[] }) {
                 <div className="sim-result__head">
                   <Icon size={20} aria-hidden="true" className="sim-result__icon" />
                   <p className="sim-result__title">{title}</p>
+                  {r.autopilot && (
+                    <Badge tone="live" icon={Navigation}>
+                      {t('autopilot.badge')}
+                    </Badge>
+                  )}
                   <time className="sim-result__time tabular" dateTime={r.at}>
                     {fmt.timeSeconds(r.at)}
                   </time>
@@ -290,5 +289,38 @@ function ResultList({ results }: { results: SimResult[] }) {
         </ul>
       )}
     </div>
+  );
+}
+
+/** Autopilot panel (UX §5.11 v2): toggle, pace, stats and the "events are real" warning. */
+function AutopilotPanel() {
+  const { t } = useTranslation();
+  const pilot = useAutopilot();
+  return (
+    <Panel
+      title={t('autopilot.title')}
+      className="autopilot-panel"
+      action={<Switch id="autopilot-toggle" switchFirst label={t('autopilot.toggle')} checked={pilot.on} onChange={() => pilot.toggle()} />}
+    >
+      <p className="panel-lead">{t('autopilot.lead')}</p>
+      <div className="autopilot-panel__row">
+        <SegmentedControl<Pace>
+          name="autopilot-pace"
+          legend={t('autopilot.pace.label')}
+          value={pilot.pace}
+          onChange={pilot.setPace}
+          options={[
+            { value: 'calm', label: t('autopilot.pace.calm') },
+            { value: 'busy', label: t('autopilot.pace.busy') },
+          ]}
+        />
+        <p className="autopilot-panel__stats" aria-live="polite">
+          {pilot.on || pilot.sent ? t('autopilot.stats', { events: pilot.sent, alarms: pilot.alarms }) : t(`autopilot.pace.${pilot.pace}Hint`)}
+        </p>
+      </div>
+      <InlineAlert tone="warning" size="sm">
+        {t('autopilot.warning')}
+      </InlineAlert>
+    </Panel>
   );
 }
