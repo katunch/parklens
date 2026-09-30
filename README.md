@@ -76,6 +76,11 @@ docker pull ghcr.io/katunch/parklens-web:latest
 The `web` image proxies `/api` to a host named `api`, so run the API container under that name (as in
 `docker-compose.yml`).
 
+### Kubernetes
+
+Manifests for the EKS cluster (https://parklens.dora.cust.sobr-brews.ch) are in [`k8s/`](k8s/). See
+[`k8s/README.md`](k8s/README.md) for the deploy steps.
+
 ## Connecting the entrance camera / gate
 
 Both endpoints are reachable through the web container, so only one port needs to be opened.

@@ -1,0 +1,29 @@
+# Rules on the cluster's shared ALB. TLS (wildcard certificate) and the DNS record are handled by the platform.
+# Only per-app annotations here: listen-ports and ssl-redirect must stay identical on every Ingress.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: parklens
+  namespace: parklens
+  labels:
+    app.kubernetes.io/name: parklens
+  annotations:
+    # Shared listeners: keep these two identical on every Ingress
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # Per-app target group settings
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+spec:
+  ingressClassName: alb
+  rules:
+    - host: parklens.dora.cust.sobr-brews.ch
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http

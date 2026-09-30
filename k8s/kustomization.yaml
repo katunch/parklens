@@ -1,0 +1,26 @@
+# ParkLens on the k8s-baseline EKS cluster, served at https://parklens.dora.cust.sobr-brews.ch.
+# Apply with `kubectl apply -k k8s/` (see README.md in this folder).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: parklens
+
+resources:
+  - namespace.yaml
+  - db.yaml
+  - api.yaml
+  - web.yaml
+  - ingress.yaml
+
+# Non-secret API settings. The generated name carries a content hash, so changing config.env rolls the API.
+configMapGenerator:
+  - name: parklens-config
+    envs:
+      - config.env
+
+# Immutable tags published by .github/workflows/docker.yml (sha-<short commit>). Bump both on every deploy.
+images:
+  - name: ghcr.io/katunch/parklens-api
+    newTag: sha-4197ed9
+  - name: ghcr.io/katunch/parklens-web
+    newTag: sha-4197ed9
