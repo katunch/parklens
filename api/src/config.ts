@@ -20,6 +20,7 @@ export interface Config {
   webhookUrl: string;
   webhookFormat: WebhookFormat;
   lotCapacity: number;
+  trustProxyHops: number;
   logRequests: boolean;
 }
 
@@ -61,6 +62,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`LOT_CAPACITY "${env['LOT_CAPACITY']}" must be an integer between ${LOT_CAPACITY_MIN} and ${LOT_CAPACITY_MAX}`);
   }
 
+  const trustProxyHops = Number(str(env, 'TRUST_PROXY_HOPS', '1'));
+  if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0 || trustProxyHops > 10) {
+    throw new Error(`TRUST_PROXY_HOPS "${env['TRUST_PROXY_HOPS']}" must be an integer between 0 and 10`);
+  }
+
   const rawFormat = str(env, 'WEBHOOK_FORMAT', 'generic').toLowerCase();
   const webhookFormat = (WEBHOOK_FORMATS as readonly string[]).includes(rawFormat)
     ? (rawFormat as WebhookFormat)
@@ -81,6 +87,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webhookUrl: str(env, 'WEBHOOK_URL', ''),
     webhookFormat,
     lotCapacity,
+    trustProxyHops,
     logRequests: nodeEnv !== 'test',
   };
 }

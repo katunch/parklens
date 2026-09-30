@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import helmet from 'helmet';
+import { config } from './config.js';
 import { requireAdmin } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { requestLog } from './middleware/requestLog.js';
@@ -18,7 +19,9 @@ import { streamRouter } from './routes/stream.js';
 /** Builds the Express app (no listening, no background jobs) — used by index.ts and tests. */
 export function createApp(): Express {
   const app = express();
-  app.set('trust proxy', 1); // behind nginx: use the first X-Forwarded-For hop as client IP
+  // Number of reverse proxies in front of the API (nginx; nginx + load balancer in Kubernetes). The client IP
+  // is the X-Forwarded-For entry that many hops from the right, so rate limits apply per client.
+  app.set('trust proxy', config.trustProxyHops);
   app.set('etag', false);
   app.disable('x-powered-by');
 

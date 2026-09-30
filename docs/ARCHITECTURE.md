@@ -96,6 +96,7 @@ parklens/
 | `WEBHOOK_URL` | *(empty)* | Optional initial webhook URL (UI setting wins once saved) |
 | `WEBHOOK_FORMAT` | `generic` | `generic` \| `slack` \| `teams` |
 | `LOT_CAPACITY` | `40` | Initial number of parking spaces (v2; UI setting wins once saved) |
+| `TRUST_PROXY_HOPS` | `1` | Reverse proxies in front of the API: `1` = nginx (compose), `2` = load balancer + nginx (Kubernetes). Client IPs for rate limits and logs come from `X-Forwarded-For` |
 
 ---
 
